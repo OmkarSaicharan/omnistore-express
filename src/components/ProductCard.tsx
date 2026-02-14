@@ -3,6 +3,8 @@ import { ShoppingCart } from 'lucide-react';
 import { Product } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { StockBar } from './StockBar';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -15,6 +17,8 @@ interface ProductCardProps {
 export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const { t } = useLanguage();
   const { addToCart } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const name = t(`product.${product.id}`) !== `product.${product.id}` ? t(`product.${product.id}`) : product.name;
   const desc = t(`product.${product.id}.desc`) !== `product.${product.id}.desc` ? t(`product.${product.id}.desc`) : product.description;
 
@@ -42,7 +46,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         <StockBar stock={product.stock} maxStock={product.maxStock} />
         {product.stock > 0 ? (
           <Button
-            onClick={() => { addToCart(product); toast.success(`${name} added to cart!`); }}
+            onClick={() => { if (!user) { toast.error('Please login to add items to cart'); navigate('/login'); return; } addToCart(product); toast.success(`${name} added to cart!`); }}
             className="w-full gap-2"
             size="sm"
           >
