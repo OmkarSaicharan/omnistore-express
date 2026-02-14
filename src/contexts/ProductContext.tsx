@@ -5,6 +5,8 @@ import { initialProducts } from '@/data/products';
 interface ProductContextType {
   products: Product[];
   updateProduct: (id: string, updates: Partial<Product>) => void;
+  addProduct: (product: Product) => void;
+  deleteProduct: (id: string) => void;
   getProductsByCategory: (category: string) => Product[];
 }
 
@@ -26,10 +28,18 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
   };
 
+  const addProduct = (product: Product) => {
+    setProducts(prev => [...prev, product]);
+  };
+
+  const deleteProduct = (id: string) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+  };
+
   const getProductsByCategory = (category: string) => products.filter(p => p.category === category);
 
   return (
-    <ProductContext.Provider value={{ products, updateProduct, getProductsByCategory }}>
+    <ProductContext.Provider value={{ products, updateProduct, addProduct, deleteProduct, getProductsByCategory }}>
       {children}
     </ProductContext.Provider>
   );
