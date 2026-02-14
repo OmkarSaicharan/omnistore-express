@@ -11,10 +11,11 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
-import { BarChart3, Package, AlertTriangle, DollarSign, Pencil, Plus, Trash2 } from 'lucide-react';
+import { BarChart3, Package, AlertTriangle, DollarSign, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { toast } from 'sonner';
 import { CATEGORIES } from '@/data/products';
+import { CustomersTab } from '@/components/admin/CustomersTab';
 
 const emptyForm = { name: '', price: 0, stock: 0, maxStock: 100, image: '', category: 'chips', description: '' };
 
@@ -25,7 +26,7 @@ export default function Admin() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editForm, setEditForm] = useState(emptyForm);
   const [isAdding, setIsAdding] = useState(false);
-  const [tab, setTab] = useState<'dashboard' | 'products'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'products' | 'customers'>('dashboard');
 
   if (!isAdmin) return <Navigate to="/login" replace />;
 
@@ -100,7 +101,7 @@ export default function Admin() {
           className="text-3xl font-bold mb-6">{t('admin.title')}</motion.h1>
 
         <div className="flex gap-2 mb-6">
-          {(['dashboard', 'products'] as const).map(t2 => (
+          {(['dashboard', 'products', 'customers'] as const).map(t2 => (
             <button key={t2} onClick={() => setTab(t2)}
               className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-colors ${tab === t2 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
               {t(`admin.${t2}`)}
@@ -171,6 +172,8 @@ export default function Admin() {
             </div>
           </div>
         )}
+
+        {tab === 'customers' && <CustomersTab />}
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
