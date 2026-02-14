@@ -20,7 +20,7 @@ export default function Login() {
     e.preventDefault();
     setError('');
     if (login(email, password)) {
-      navigate(email === 'admin@omnistore.com' ? '/admin' : '/profile');
+      navigate(email === 'omkarsaicharan@gmail.com' ? '/admin' : '/profile');
     } else {
       setError(t('auth.loginError'));
     }
