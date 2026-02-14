@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { StockBar } from './StockBar';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   product: Product;
@@ -41,7 +42,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         <StockBar stock={product.stock} maxStock={product.maxStock} />
         {product.stock > 0 ? (
           <Button
-            onClick={() => addToCart(product)}
+            onClick={() => { addToCart(product); toast.success(`${name} added to cart!`); }}
             className="w-full gap-2"
             size="sm"
           >
