@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CartItem, Product, Order } from '@/types';
 import { useAuth } from './AuthContext';
+import { useProducts } from './ProductContext';
 
 interface CartContextType {
   items: CartItem[];
@@ -18,6 +19,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { updateProduct, products } = useProducts();
   const [items, setItems] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('omnistore-cart');
     return saved ? JSON.parse(saved) : [];
@@ -68,6 +70,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const allOrders = JSON.parse(localStorage.getItem('omnistore-orders') || '[]');
     allOrders.push(order);
     localStorage.setItem('omnistore-orders', JSON.stringify(allOrders));
+    // Decrease stock for each purchased item
+    items.forEach(item => {
+      const current = products.find(p => p.id === item.product.id);
+      if (current) {
+        updateProduct(item.product.id, { stock: Math.max(0, current.stock - item.quantity) });
+      }
+    });
     clearCart();
     return order;
   };
