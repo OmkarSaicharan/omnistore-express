@@ -33,24 +33,24 @@ export default function Shop() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <div className="pt-24 pb-8 container mx-auto px-4">
+      <div className="pt-20 sm:pt-24 pb-8 container mx-auto px-3 sm:px-4">
         <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-bold mb-6">{t('shop.title')}</motion.h1>
+          className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6">{t('shop.title')}</motion.h1>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder={t('shop.search')} value={search} onChange={e => setSearch(e.target.value)}
-              className="pl-10" />
+              className="pl-10 h-10 sm:h-11" />
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
             <button onClick={() => setSearchParams({})}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${!activeCategory ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${!activeCategory ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
               {t('shop.all')}
             </button>
             {CATEGORIES.map(cat => (
               <button key={cat.id} onClick={() => setSearchParams({ category: cat.id })}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeCategory === cat.id ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeCategory === cat.id ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
                 {t(`cat.${cat.id}`)}
               </button>
             ))}
@@ -60,7 +60,7 @@ export default function Shop() {
         {filtered.length === 0 ? (
           <p className="text-center text-muted-foreground py-16">{t('shop.noProducts')}</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {filtered.map((product, i) => (
               <ProductCard key={product.id} product={product} index={i} />
             ))}

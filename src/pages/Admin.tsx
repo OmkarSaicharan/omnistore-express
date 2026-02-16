@@ -96,14 +96,14 @@ export default function Admin() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <div className="pt-24 pb-8 container mx-auto px-4">
+      <div className="pt-20 sm:pt-24 pb-8 container mx-auto px-3 sm:px-4">
         <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-bold mb-6">{t('admin.title')}</motion.h1>
+          className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6">{t('admin.title')}</motion.h1>
 
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto scrollbar-hide">
           {(['dashboard', 'products', 'customers'] as const).map(t2 => (
             <button key={t2} onClick={() => setTab(t2)}
-              className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-colors ${tab === t2 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
+              className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${tab === t2 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
               {t(`admin.${t2}`)}
             </button>
           ))}

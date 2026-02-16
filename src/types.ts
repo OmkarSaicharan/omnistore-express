@@ -17,6 +17,7 @@ export interface User {
   email: string;
   password: string;
   role: 'customer' | 'admin';
+  registeredAt?: string;
 }
 
 export interface CartItem {
@@ -30,5 +31,6 @@ export interface Order {
   items: { productName: string; quantity: number; price: number }[];
   total: number;
   date: string;
+  orderedAt?: string;
   status: string;
 }
