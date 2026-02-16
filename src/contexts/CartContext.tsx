@@ -12,6 +12,7 @@ interface CartContextType {
   total: number;
   itemCount: number;
   checkout: () => Order | null;
+  buyNow: (product: Product) => Order | null;
   orders: Order[];
 }
 
@@ -82,8 +83,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return order;
   };
 
+  const buyNow = (product: Product): Order | null => {
+    if (!user || product.stock <= 0) return null;
+    const order: Order = {
+      id: `ORD-${Math.floor(Math.random() * 10000)}`,
+      userId: user.id,
+      items: [{ productName: product.name, quantity: 1, price: product.price }],
+      total: product.price,
+      date: new Date().toLocaleDateString(),
+      orderedAt: new Date().toISOString(),
+      status: 'Completed',
+    };
+    const allOrders = JSON.parse(localStorage.getItem('omnistore-orders') || '[]');
+    allOrders.push(order);
+    localStorage.setItem('omnistore-orders', JSON.stringify(allOrders));
+    const current = products.find(p => p.id === product.id);
+    if (current) {
+      updateProduct(product.id, { stock: Math.max(0, current.stock - 1) });
+    }
+    return order;
+  };
+
   return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, total, itemCount, checkout, orders }}>
+    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, total, itemCount, checkout, buyNow, orders }}>
       {children}
     </CartContext.Provider>
   );
