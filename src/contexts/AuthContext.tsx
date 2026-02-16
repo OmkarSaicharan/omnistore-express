@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
     if (!users.find(u => u.email === ADMIN_EMAIL)) {
-      users.push({ id: 'admin-1', name: 'Admin', email: ADMIN_EMAIL, password: ADMIN_PASSWORD, role: 'admin' });
+      users.push({ id: 'admin-1', name: 'Admin', email: ADMIN_EMAIL, password: ADMIN_PASSWORD, role: 'admin', registeredAt: new Date().toISOString() });
       localStorage.setItem('omnistore-users', JSON.stringify(users));
     }
   }, []);
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = (name: string, email: string, password: string): boolean => {
     const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
     if (users.find(u => u.email === email)) return false;
-    const newUser: User = { id: `user-${Date.now()}`, name, email, password, role: 'customer' };
+    const newUser: User = { id: `user-${Date.now()}`, name, email, password, role: 'customer', registeredAt: new Date().toISOString() };
     users.push(newUser);
     localStorage.setItem('omnistore-users', JSON.stringify(users));
     setUser(newUser);

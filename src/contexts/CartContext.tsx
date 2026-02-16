@@ -65,6 +65,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items: items.map(i => ({ productName: i.product.name, quantity: i.quantity, price: i.product.price * i.quantity })),
       total,
       date: new Date().toLocaleDateString(),
+      orderedAt: new Date().toISOString(),
       status: 'Completed',
     };
     const allOrders = JSON.parse(localStorage.getItem('omnistore-orders') || '[]');

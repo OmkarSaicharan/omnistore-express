@@ -17,18 +17,18 @@ const Index = () => {
       <Navbar />
       <Hero />
       {/* Categories */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold mb-8">{t('cat.title')}</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section className="container mx-auto px-3 sm:px-4 py-8 sm:py-16">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-8">{t('cat.title')}</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4">
           {CATEGORIES.map((cat, i) => (
             <CategoryCard key={cat.id} id={cat.id} image={cat.image} index={i} />
           ))}
         </div>
       </section>
       {/* Featured */}
-      <section className="container mx-auto px-4 pb-16">
-        <h2 className="text-3xl font-bold mb-8">{t('shop.featured')}</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <section className="container mx-auto px-3 sm:px-4 pb-8 sm:pb-16">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-8">{t('shop.featured')}</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
           {featured.map((product, i) => (
             <ProductCard key={product.id} product={product} index={i} />
           ))}
