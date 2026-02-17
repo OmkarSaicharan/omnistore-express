@@ -30,8 +30,8 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
     setShowPayment(true);
   };
 
-  const handlePayment = (method: string) => {
-    const order = checkout();
+  const handlePayment = async (method: string) => {
+    const order = await checkout();
     if (order) {
       const upiId = '9392965097@ybl';
       const links: Record<string, string> = {

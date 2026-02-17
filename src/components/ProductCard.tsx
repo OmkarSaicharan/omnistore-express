@@ -33,9 +33,9 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
     toast.success(`${name} added to cart!`);
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (requireLogin()) return;
-    const order = buyNow(product);
+    const order = await buyNow(product);
     if (order) {
       toast.success(`Order ${order.id} placed for ${name}!`);
     }

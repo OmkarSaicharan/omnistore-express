@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { User, Order } from '@/types';
+import { Order } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { Users, ShoppingCart, Package, Clock, RefreshCw } from 'lucide-react';
 import {
@@ -8,36 +9,58 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+interface Profile {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+  registered_at: string;
+}
+
 interface CartStorageItem {
   product: { id: string; name: string; price: number; image: string };
   quantity: number;
 }
 
 export function CustomersTab() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<Profile[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [carts, setCarts] = useState<Record<string, CartStorageItem[]>>({});
 
-  const loadData = useCallback(() => {
-    const allUsers: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
-    const allOrders: Order[] = JSON.parse(localStorage.getItem('omnistore-orders') || '[]');
-    const activeCart: CartStorageItem[] = JSON.parse(localStorage.getItem('omnistore-cart') || '[]');
-    const session: User | null = JSON.parse(localStorage.getItem('omnistore-session') || 'null');
+  const loadData = useCallback(async () => {
+    // Fetch profiles from cloud
+    const { data: profiles } = await supabase.from('profiles').select('*');
+    if (profiles) {
+      setUsers(profiles.filter(p => p.role !== 'admin'));
+    }
 
+    // Fetch all orders from cloud
+    const { data: cloudOrders } = await supabase.from('orders').select('*');
+    if (cloudOrders) {
+      setOrders(cloudOrders.map(o => ({
+        id: o.id,
+        userId: o.user_id,
+        items: o.items as { productName: string; quantity: number; price: number }[],
+        total: Number(o.total),
+        date: o.date,
+        orderedAt: o.ordered_at,
+        status: o.status,
+      })));
+    }
+
+    // Cart is still localStorage (per-session)
+    const activeCart: CartStorageItem[] = JSON.parse(localStorage.getItem('omnistore-cart') || '[]');
+    const session = JSON.parse(localStorage.getItem('omnistore-session') || 'null');
     const cartMap: Record<string, CartStorageItem[]> = {};
     if (session && activeCart.length > 0) {
       cartMap[session.id] = activeCart;
     }
-
-    setUsers(allUsers.filter(u => u.role !== 'admin'));
-    setOrders(allOrders);
     setCarts(cartMap);
   }, []);
 
-  // Load on mount + auto-refresh every 3 seconds
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 3000);
+    const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
   }, [loadData]);
 
@@ -73,13 +96,13 @@ export function CustomersTab() {
       ) : (
         <div className="space-y-3">
           {users.map(user => {
-            const userOrders = getUserOrders(user.id);
-            const userCart = getUserCart(user.id);
+            const userOrders = getUserOrders(user.user_id);
+            const userCart = getUserCart(user.user_id);
             const totalSpent = userOrders.reduce((s, o) => s + o.total, 0);
 
             return (
-              <Accordion type="multiple" key={user.id}>
-                <AccordionItem value={user.id} className="glass-card border rounded-xl px-3 sm:px-4">
+              <Accordion type="multiple" key={user.user_id}>
+                <AccordionItem value={user.user_id} className="glass-card border rounded-xl px-3 sm:px-4">
                   <AccordionTrigger className="hover:no-underline py-3">
                     <div className="flex items-center gap-3 text-left w-full pr-2">
                       <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
@@ -88,11 +111,9 @@ export function CustomersTab() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm sm:text-base truncate">{user.name}</p>
                         <p className="text-xs sm:text-sm text-muted-foreground truncate">{user.email}</p>
-                        {user.registeredAt && (
-                          <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <Clock className="h-3 w-3" /> Joined: {formatDate(user.registeredAt)}
-                          </p>
-                        )}
+                        <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <Clock className="h-3 w-3" /> Joined: {formatDate(user.registered_at)}
+                        </p>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 shrink-0">
                         <Badge variant="secondary" className="gap-1 text-[10px] sm:text-xs">
@@ -105,7 +126,6 @@ export function CustomersTab() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pb-4 space-y-4">
-                    {/* Orders Section */}
                     <div>
                       <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
                         <Package className="h-4 w-4" /> Orders ({userOrders.length})
@@ -141,7 +161,6 @@ export function CustomersTab() {
                       )}
                     </div>
 
-                    {/* Cart Section */}
                     <div>
                       <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
                         <ShoppingCart className="h-4 w-4" /> Current Cart ({userCart.length} items)
