@@ -4,7 +4,6 @@
 ## https://omnistore-express.vercel.app/
 ## Project info
 
-
 ## How can I edit this code?
 
 There are several ways of editing your application.
@@ -57,5 +56,4 @@ This project is built with:
 
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+vercel
