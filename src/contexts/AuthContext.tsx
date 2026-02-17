@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
-  register: (name: string, email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   isAdmin: boolean;
@@ -26,28 +27,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     else localStorage.removeItem('omnistore-session');
   }, [user]);
 
-  // Seed admin user
+  // Seed admin user in cloud DB
   useEffect(() => {
-    const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
-    if (!users.find(u => u.email === ADMIN_EMAIL)) {
-      users.push({ id: 'admin-1', name: 'Admin', email: ADMIN_EMAIL, password: ADMIN_PASSWORD, role: 'admin', registeredAt: new Date().toISOString() });
-      localStorage.setItem('omnistore-users', JSON.stringify(users));
-    }
+    const seedAdmin = async () => {
+      const { data } = await supabase.from('profiles').select('user_id').eq('email', ADMIN_EMAIL).maybeSingle();
+      if (!data) {
+        await supabase.from('profiles').insert({
+          user_id: 'admin-1',
+          name: 'Admin',
+          email: ADMIN_EMAIL,
+          role: 'admin',
+        });
+      }
+    };
+    seedAdmin();
   }, []);
 
-  const login = (email: string, password: string): boolean => {
+  const login = async (email: string, password: string): Promise<boolean> => {
+    // Check localStorage for password (since we store passwords locally for this simple auth)
     const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
     const found = users.find(u => u.email === email && u.password === password);
-    if (found) { setUser(found); return true; }
+    if (found) {
+      // Also ensure profile exists in cloud
+      const { data: profile } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
+      if (profile) {
+        found.registeredAt = profile.registered_at;
+      }
+      setUser(found);
+      return true;
+    }
     return false;
   };
 
-  const register = (name: string, email: string, password: string): boolean => {
+  const register = async (name: string, email: string, password: string): Promise<boolean> => {
     const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
     if (users.find(u => u.email === email)) return false;
-    const newUser: User = { id: `user-${Date.now()}`, name, email, password, role: 'customer', registeredAt: new Date().toISOString() };
+
+    // Also check cloud
+    const { data: existing } = await supabase.from('profiles').select('user_id').eq('email', email).maybeSingle();
+    if (existing) return false;
+
+    const userId = `user-${Date.now()}`;
+    const now = new Date().toISOString();
+    const newUser: User = { id: userId, name, email, password, role: 'customer', registeredAt: now };
+
+    // Save to localStorage (for password-based login)
     users.push(newUser);
     localStorage.setItem('omnistore-users', JSON.stringify(users));
+
+    // Save profile to cloud DB
+    await supabase.from('profiles').insert({
+      user_id: userId,
+      name,
+      email,
+      role: 'customer',
+    });
+
     setUser(newUser);
     return true;
   };
@@ -61,6 +96,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
     const idx = users.findIndex(u => u.id === user.id);
     if (idx !== -1) { users[idx] = updated; localStorage.setItem('omnistore-users', JSON.stringify(users)); }
+
+    // Update cloud profile
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.name) dbUpdates.name = updates.name;
+    if (updates.email) dbUpdates.email = updates.email;
+    supabase.from('profiles').update(dbUpdates).eq('user_id', user.id).then();
   };
 
   return (

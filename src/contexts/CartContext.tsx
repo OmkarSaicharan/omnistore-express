@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { CartItem, Product, Order } from '@/types';
 import { useAuth } from './AuthContext';
 import { useProducts } from './ProductContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CartContextType {
   items: CartItem[];
@@ -11,8 +12,8 @@ interface CartContextType {
   clearCart: () => void;
   total: number;
   itemCount: number;
-  checkout: () => Order | null;
-  buyNow: (product: Product) => Order | null;
+  checkout: () => Promise<Order | null>;
+  buyNow: (product: Product) => Promise<Order | null>;
   orders: Order[];
 }
 
@@ -25,13 +26,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('omnistore-cart');
     return saved ? JSON.parse(saved) : [];
   });
+  const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     localStorage.setItem('omnistore-cart', JSON.stringify(items));
   }, [items]);
 
-  const orders: Order[] = JSON.parse(localStorage.getItem('omnistore-orders') || '[]')
-    .filter((o: Order) => o.userId === user?.id);
+  // Fetch orders from cloud
+  useEffect(() => {
+    if (!user) { setOrders([]); return; }
+    const fetchOrders = async () => {
+      const { data } = await supabase.from('orders').select('*').eq('user_id', user.id);
+      if (data) {
+        setOrders(data.map(o => ({
+          id: o.id,
+          userId: o.user_id,
+          items: o.items as { productName: string; quantity: number; price: number }[],
+          total: Number(o.total),
+          date: o.date,
+          orderedAt: o.ordered_at,
+          status: o.status,
+        })));
+      }
+    };
+    fetchOrders();
+  }, [user]);
 
   const addToCart = (product: Product) => {
     setItems(prev => {
@@ -58,49 +77,72 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const total = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
-  const checkout = (): Order | null => {
+  const checkout = async (): Promise<Order | null> => {
     if (!user || items.length === 0) return null;
+    const now = new Date().toISOString();
     const order: Order = {
       id: `ORD-${Math.floor(Math.random() * 10000)}`,
       userId: user.id,
       items: items.map(i => ({ productName: i.product.name, quantity: i.quantity, price: i.product.price * i.quantity })),
       total,
       date: new Date().toLocaleDateString(),
-      orderedAt: new Date().toISOString(),
+      orderedAt: now,
       status: 'Completed',
     };
-    const allOrders = JSON.parse(localStorage.getItem('omnistore-orders') || '[]');
-    allOrders.push(order);
-    localStorage.setItem('omnistore-orders', JSON.stringify(allOrders));
-    // Decrease stock for each purchased item
-    items.forEach(item => {
+
+    // Save to cloud
+    await supabase.from('orders').insert({
+      id: order.id,
+      user_id: order.userId,
+      items: order.items,
+      total: order.total,
+      date: order.date,
+      ordered_at: now,
+      status: order.status,
+    });
+
+    // Decrease stock
+    for (const item of items) {
       const current = products.find(p => p.id === item.product.id);
       if (current) {
         updateProduct(item.product.id, { stock: Math.max(0, current.stock - item.quantity) });
       }
-    });
+    }
+
+    setOrders(prev => [...prev, order]);
     clearCart();
     return order;
   };
 
-  const buyNow = (product: Product): Order | null => {
+  const buyNow = async (product: Product): Promise<Order | null> => {
     if (!user || product.stock <= 0) return null;
+    const now = new Date().toISOString();
     const order: Order = {
       id: `ORD-${Math.floor(Math.random() * 10000)}`,
       userId: user.id,
       items: [{ productName: product.name, quantity: 1, price: product.price }],
       total: product.price,
       date: new Date().toLocaleDateString(),
-      orderedAt: new Date().toISOString(),
+      orderedAt: now,
       status: 'Completed',
     };
-    const allOrders = JSON.parse(localStorage.getItem('omnistore-orders') || '[]');
-    allOrders.push(order);
-    localStorage.setItem('omnistore-orders', JSON.stringify(allOrders));
+
+    await supabase.from('orders').insert({
+      id: order.id,
+      user_id: order.userId,
+      items: order.items,
+      total: order.total,
+      date: order.date,
+      ordered_at: now,
+      status: order.status,
+    });
+
     const current = products.find(p => p.id === product.id);
     if (current) {
       updateProduct(product.id, { stock: Math.max(0, current.stock - 1) });
     }
+
+    setOrders(prev => [...prev, order]);
     return order;
   };
 

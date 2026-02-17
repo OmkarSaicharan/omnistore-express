@@ -16,10 +16,10 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (login(email, password)) {
+    if (await login(email, password)) {
       navigate(email === 'omkarsaicharan@gmail.com' ? '/admin' : '/profile');
     } else {
       setError(t('auth.loginError'));
