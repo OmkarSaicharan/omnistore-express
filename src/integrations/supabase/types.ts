@@ -14,7 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      orders: {
+        Row: {
+          date: string
+          id: string
+          items: Json
+          ordered_at: string
+          status: string
+          total: number
+          user_id: string
+        }
+        Insert: {
+          date: string
+          id: string
+          items?: Json
+          ordered_at?: string
+          status?: string
+          total?: number
+          user_id: string
+        }
+        Update: {
+          date?: string
+          id?: string
+          items?: Json
+          ordered_at?: string
+          status?: string
+          total?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          id: string
+          image: string
+          max_stock: number
+          name: string
+          price: number
+          stock: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string
+          id: string
+          image: string
+          max_stock?: number
+          name: string
+          price: number
+          stock?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          image?: string
+          max_stock?: number
+          name?: string
+          price?: number
+          stock?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          email: string
+          id: string
+          name: string
+          registered_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          email: string
+          id?: string
+          name: string
+          registered_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          name?: string
+          registered_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
