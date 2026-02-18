@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string, role?: 'customer' | 'admin') => Promise<boolean>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   isAdmin: boolean;
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+  const register = async (name: string, email: string, password: string, role: 'customer' | 'admin' = 'customer'): Promise<boolean> => {
     const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
     if (users.find(u => u.email === email)) return false;
 
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const userId = `user-${Date.now()}`;
     const now = new Date().toISOString();
-    const newUser: User = { id: userId, name, email, password, role: 'customer', registeredAt: now };
+    const newUser: User = { id: userId, name, email, password, role, registeredAt: now };
 
     // Save to localStorage (for password-based login)
     users.push(newUser);
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user_id: userId,
       name,
       email,
-      role: 'customer',
+      role,
     });
 
     setUser(newUser);
