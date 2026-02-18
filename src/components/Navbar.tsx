@@ -17,7 +17,7 @@ export function Navbar() {
   const location = useLocation();
 
   const navLinks = [
-    { to: '/', label: t('nav.home'), icon: Home },
+    { to: '/home', label: t('nav.home'), icon: Home },
     { to: '/shop', label: t('nav.shop'), icon: Store },
     { to: '/categories', label: t('nav.categories'), icon: Grid3X3 },
     { to: '/about', label: t('nav.about'), icon: Info },
@@ -40,7 +40,7 @@ export function Navbar() {
               </SheetTrigger>
               <SheetContent side="left" className="w-72 bg-card">
                 <div className="mt-8 flex flex-col gap-1">
-                  <Link to="/" className="text-xl font-bold text-primary mb-6">{t('app.name')}</Link>
+                  <Link to="/home" className="text-xl font-bold text-primary mb-6">{t('app.name')}</Link>
                   {navLinks.map(link => (
                     <Link key={link.to} to={link.to} onClick={() => setMobileOpen(false)}
                       className={`px-4 py-3 rounded-lg font-medium flex items-center gap-3 transition-colors ${isActive(link.to) ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:bg-muted'}`}>
@@ -75,7 +75,7 @@ export function Navbar() {
                 </div>
               </SheetContent>
             </Sheet>
-            <Link to="/" className="text-lg sm:text-xl font-bold text-primary">
+            <Link to="/home" className="text-lg sm:text-xl font-bold text-primary">
               {t('app.name')}
             </Link>
           </div>
