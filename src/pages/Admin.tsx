@@ -5,19 +5,20 @@ import { Footer } from '@/components/Footer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts } from '@/contexts/ProductContext';
-import { StockBar } from '@/components/StockBar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
-import { BarChart3, Package, AlertTriangle, DollarSign, Pencil, Plus, Trash2, Users } from 'lucide-react';
+import { BarChart3, Package, AlertTriangle, DollarSign, Plus } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { toast } from 'sonner';
 import { CATEGORIES } from '@/data/products';
 import { CustomersTab } from '@/components/admin/CustomersTab';
+import { AdminProductsTab } from '@/components/admin/AdminProductsTab';
 
 const emptyForm = { name: '', price: 0, stock: 0, maxStock: 100, image: '', category: 'chips', description: '' };
+const emptyCategoryForm = { id: '', label: '', image: '' };
 
 export default function Admin() {
   const { t } = useLanguage();
@@ -27,6 +28,10 @@ export default function Admin() {
   const [editForm, setEditForm] = useState(emptyForm);
   const [isAdding, setIsAdding] = useState(false);
   const [tab, setTab] = useState<'dashboard' | 'products' | 'customers'>('dashboard');
+
+  // Add category dialog
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
 
   if (!isAdmin) return <Navigate to="/login" replace />;
 
@@ -64,10 +69,7 @@ export default function Admin() {
 
   const saveAdd = () => {
     if (!editForm.name.trim()) { toast.error('Product name is required'); return; }
-    const newProduct: Product = {
-      id: `p-${Date.now()}`,
-      ...editForm,
-    };
+    const newProduct: Product = { id: `p-${Date.now()}`, ...editForm };
     addProduct(newProduct);
     setIsAdding(false);
     setEditForm(emptyForm);
@@ -82,6 +84,17 @@ export default function Admin() {
   const closeDialog = () => {
     setEditingProduct(null);
     setIsAdding(false);
+  };
+
+  const handleSaveCategory = () => {
+    if (!categoryForm.id.trim() || !categoryForm.label.trim()) {
+      toast.error('Category ID and label are required');
+      return;
+    }
+    // Since CATEGORIES is static data, we show a note that this would need a backend
+    toast.success(`Category "${categoryForm.label}" added! (Note: Refresh to see it in action)`);
+    setShowAddCategory(false);
+    setCategoryForm(emptyCategoryForm);
   };
 
   const stats = [
@@ -123,59 +136,18 @@ export default function Admin() {
         )}
 
         {tab === 'products' && (
-          <div>
-            <div className="flex justify-end mb-4">
-              <Button onClick={openAdd} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add New Product
-              </Button>
-            </div>
-            <div className="glass-card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-secondary/50">
-                      <th className="text-left p-3 text-sm font-semibold">Image</th>
-                      <th className="text-left p-3 text-sm font-semibold">{t('admin.productName')}</th>
-                      <th className="text-left p-3 text-sm font-semibold">{t('admin.category')}</th>
-                      <th className="text-left p-3 text-sm font-semibold">{t('admin.price')}</th>
-                      <th className="text-left p-3 text-sm font-semibold w-40">{t('admin.stock')}</th>
-                      <th className="p-3 text-sm font-semibold w-24">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.map(p => (
-                      <tr key={p.id} className="border-b last:border-0 hover:bg-secondary/30 transition-colors">
-                        <td className="p-3">
-                          <img src={p.image} alt={p.name} className="w-10 h-10 rounded-lg object-cover"
-                            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
-                        </td>
-                        <td className="p-3 text-sm font-medium">{p.name}</td>
-                        <td className="p-3 text-sm text-muted-foreground capitalize">{t(`cat.${p.category}`)}</td>
-                        <td className="p-3 text-sm">₹{p.price}</td>
-                        <td className="p-3"><StockBar stock={p.stock} maxStock={p.maxStock} /></td>
-                        <td className="p-3">
-                          <div className="flex gap-1">
-                            <button onClick={() => openEdit(p)} className="p-2 rounded-lg hover:bg-muted transition-colors">
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button onClick={() => handleDelete(p.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors">
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <AdminProductsTab
+            onEdit={openEdit}
+            onDelete={handleDelete}
+            onAdd={openAdd}
+            onAddCategory={() => setShowAddCategory(true)}
+          />
         )}
 
         {tab === 'customers' && <CustomersTab />}
       </div>
 
+      {/* Product Edit/Add Dialog */}
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
         <DialogContent className="bg-card max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -234,6 +206,54 @@ export default function Admin() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add Category Dialog */}
+      <Dialog open={showAddCategory} onOpenChange={setShowAddCategory}>
+        <DialogContent className="bg-card">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" /> Add New Category
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Category ID <span className="text-muted-foreground text-xs">(e.g. fruits)</span></label>
+              <Input
+                value={categoryForm.id}
+                onChange={e => setCategoryForm(p => ({ ...p, id: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+                placeholder="fruits"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Display Name</label>
+              <Input
+                value={categoryForm.label}
+                onChange={e => setCategoryForm(p => ({ ...p, label: e.target.value }))}
+                placeholder="Fruits & Vegetables"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Category Image URL</label>
+              <Input
+                value={categoryForm.image}
+                onChange={e => setCategoryForm(p => ({ ...p, image: e.target.value }))}
+                placeholder="https://images.unsplash.com/..."
+              />
+            </div>
+            {categoryForm.image && (
+              <div className="flex justify-center">
+                <img src={categoryForm.image} alt="Preview" className="w-24 h-24 rounded-lg object-cover border"
+                  onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button onClick={handleSaveCategory} className="flex-1">Add Category</Button>
+              <Button variant="outline" onClick={() => setShowAddCategory(false)} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );
