@@ -5,12 +5,13 @@ import { Phone, ShieldCheck, ArrowRight, Store } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
-// Store phone sessions in localStorage for demo OTP auth
-const PHONE_SESSIONS_KEY = 'omnistore-phone-sessions';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+async function callOtpFunction(payload: object) {
+  const res = await supabase.functions.invoke('send-otp', { body: payload });
+  return res;
 }
 
 export default function PhoneLanding() {
@@ -18,7 +19,6 @@ export default function PhoneLanding() {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [otpError, setOtpError] = useState('');
@@ -34,18 +34,24 @@ export default function PhoneLanding() {
     }
 
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800)); // simulate sending
+    try {
+      const { data, error } = await callOtpFunction({ phone: cleaned, action: 'send' });
 
-    const otp = generateOTP();
-    setGeneratedOtp(otp);
-    setLoading(false);
-    setStep('otp');
-
-    // Show OTP to user (demo mode – in production this would be sent via SMS)
-    toast.success(`Demo OTP sent! Your OTP is: ${otp}`, {
-      duration: 30000,
-      description: 'In production, this would be sent via SMS.',
-    });
+      if (error || !data?.success) {
+        const msg = data?.message || error?.message || 'Failed to send OTP. Please try again.';
+        setPhoneError(msg);
+        toast.error(msg);
+      } else {
+        setStep('otp');
+        toast.success('OTP sent to +91 ' + cleaned.replace(/(\d{5})(\d{5})/, '$1 $2'));
+      }
+    } catch (err) {
+      const msg = 'Failed to send OTP. Check your connection.';
+      setPhoneError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
@@ -57,34 +63,36 @@ export default function PhoneLanding() {
       return;
     }
 
-    if (otp !== generatedOtp) {
-      setOtpError('Invalid OTP. Please check and try again.');
-      return;
-    }
-
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
+    try {
+      const cleaned = phone.replace(/\D/g, '');
+      const { data, error } = await callOtpFunction({ phone: cleaned, action: 'verify', otp });
 
-    // Store phone session
-    const sessions = JSON.parse(localStorage.getItem(PHONE_SESSIONS_KEY) || '{}');
-    sessions[phone.replace(/\D/g, '')] = { verifiedAt: new Date().toISOString() };
-    localStorage.setItem(PHONE_SESSIONS_KEY, JSON.stringify(sessions));
-    localStorage.setItem('omnistore-phone-verified', 'true');
-
-    setLoading(false);
-    toast.success('Mobile number verified! Welcome!');
-    navigate('/stores');
+      if (error || !data?.success) {
+        const msg = data?.message || 'Invalid OTP. Please check and try again.';
+        setOtpError(msg);
+      } else {
+        localStorage.setItem('omnistore-phone-verified', 'true');
+        toast.success('Mobile number verified! Welcome!');
+        navigate('/stores');
+      }
+    } catch (err) {
+      setOtpError('Verification failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleResend = () => {
-    const newOtp = generateOTP();
-    setGeneratedOtp(newOtp);
+  const handleResend = async () => {
     setOtp('');
     setOtpError('');
-    toast.success(`New OTP sent! Your OTP is: ${newOtp}`, {
-      duration: 30000,
-      description: 'In production, this would be sent via SMS.',
-    });
+    try {
+      const cleaned = phone.replace(/\D/g, '');
+      await callOtpFunction({ phone: cleaned, action: 'resend' });
+      toast.success('New OTP sent to +91 ' + cleaned);
+    } catch {
+      toast.error('Failed to resend OTP');
+    }
   };
 
   return (
@@ -132,7 +140,7 @@ export default function PhoneLanding() {
                 </div>
                 <h2 className="text-xl font-bold">Enter your mobile number</h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  We'll send a one-time password to verify
+                  We'll send a one-time password via SMS
                 </p>
               </div>
 
