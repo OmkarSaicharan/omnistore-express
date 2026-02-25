@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Mail, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Mail, Phone, CheckCircle, XCircle } from 'lucide-react';
 import { Hero } from '@/components/Hero';
 import { ProductCard } from '@/components/ProductCard';
 import { CategoryCard } from '@/components/CategoryCard';
@@ -19,11 +19,11 @@ const Index = () => {
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
 
-  // OTP state
+  // OTP related state
   const [step, setStep] = useState<OtpStep>('idle');
   const [contact, setContact] = useState('');          // email or phone
   const [otpInput, setOtpInput] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState(''); // mock OTP – in real app, store only on server
+  const [generatedOtp, setGeneratedOtp] = useState(''); // in real app, this stays on server
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   // Featured products logic (unchanged)
@@ -41,7 +41,7 @@ const Index = () => {
   // Simulate sending OTP – replace with actual API call
   const handleSendOtp = () => {
     if (!contact) return;
-    // In production, send contact to your backend and receive a real OTP
+    // In production, send contact to backend and receive OTP
     const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOtp(mockOtp);
     console.log(`[OTP SIMULATION] OTP for ${contact}: ${mockOtp}`);
@@ -52,11 +52,11 @@ const Index = () => {
 
   // Simulate verification – replace with actual API call
   const handleVerifyOtp = () => {
-    // In real scenario, you'd send {contact, otpInput} to your backend
+    // In real scenario, you'd send {contact, otpInput} to backend
     if (otpInput === generatedOtp) {
       setVerificationStatus('success');
       setStep('verified');
-      // Here you can set an auth token, user context, etc.
+      // You can now set user as authenticated, store token, etc.
     } else {
       setVerificationStatus('error');
     }
@@ -66,7 +66,7 @@ const Index = () => {
     <div className="min-h-screen">
       <Navbar />
 
-      {/* OTP Section – appears above the hero */}
+      {/* OTP Section */}
       <div className="container mx-auto px-3 sm:px-4 py-4 border-b">
         {step !== 'verified' ? (
           <div className="max-w-md mx-auto bg-card p-4 rounded-lg shadow-sm">
@@ -126,7 +126,7 @@ const Index = () => {
 
       <Hero />
 
-      {/* Categories – unchanged */}
+      {/* Categories */}
       <section className="container mx-auto px-3 sm:px-4 py-8 sm:py-16">
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-8">{t('cat.title')}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4">
@@ -136,7 +136,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured with Search – unchanged */}
+      {/* Featured with Search */}
       <section className="container mx-auto px-3 sm:px-4 pb-8 sm:pb-16">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-8">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">{t('shop.featured')}</h2>
@@ -169,4 +169,3 @@ const Index = () => {
   );
 };
 
-export default Index;
