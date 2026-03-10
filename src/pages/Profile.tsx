@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,7 +8,7 @@ import { useCart } from '@/contexts/CartContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { User, Package, Globe } from 'lucide-react';
+import { User, Package, Globe, LogOut, Shield, Key } from 'lucide-react';
 import { Language } from '@/types';
 
 const LANGUAGES: { code: Language; label: string }[] = [
@@ -18,18 +18,53 @@ const LANGUAGES: { code: Language; label: string }[] = [
   { code: 'kn', label: 'ಕನ್ನಡ' },
 ];
 
+function getAdminStore(email: string) {
+  try {
+    const stores = JSON.parse(localStorage.getItem('omnistore-custom-stores') || '[]');
+    return stores.find((s: any) => s.adminEmail === email) || null;
+  } catch { return null; }
+}
+
+function updateStoreName(email: string, newName: string) {
+  try {
+    const stores = JSON.parse(localStorage.getItem('omnistore-custom-stores') || '[]');
+    const idx = stores.findIndex((s: any) => s.adminEmail === email);
+    if (idx !== -1) {
+      stores[idx].name = newName;
+      localStorage.setItem('omnistore-custom-stores', JSON.stringify(stores));
+    }
+  } catch {}
+}
+
 export default function Profile() {
   const { t, language, setLanguage } = useLanguage();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout, isAdmin } = useAuth();
   const { orders } = useCart();
+  const navigate = useNavigate();
   const [editName, setEditName] = useState(user?.name || '');
   const [editing, setEditing] = useState(false);
+  const [editStoreName, setEditStoreName] = useState('');
+  const [editingStore, setEditingStore] = useState(false);
 
   if (!user) return <Navigate to="/login" replace />;
+
+  const adminStore = isAdmin ? getAdminStore(user.email) : null;
 
   const handleSave = () => {
     updateUser({ name: editName });
     setEditing(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const handleSaveStoreName = () => {
+    if (editStoreName.trim() && adminStore) {
+      updateStoreName(user.email, editStoreName.trim());
+      setEditingStore(false);
+    }
   };
 
   return (
@@ -63,6 +98,39 @@ export default function Profile() {
           )}
         </div>
 
+        {/* Admin Section */}
+        {isAdmin && adminStore && (
+          <div className="glass-card p-6 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="h-5 w-5 text-primary" />
+              <h2 className="font-bold">Admin Settings</h2>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Store Name</p>
+                {editingStore ? (
+                  <div className="flex gap-2">
+                    <Input value={editStoreName} onChange={e => setEditStoreName(e.target.value)} />
+                    <Button onClick={handleSaveStoreName}>Save</Button>
+                    <Button variant="outline" onClick={() => setEditingStore(false)}>Cancel</Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{adminStore.name}</span>
+                    <Button variant="ghost" size="sm" onClick={() => { setEditStoreName(adminStore.name); setEditingStore(true); }}>Edit</Button>
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                  <Key className="h-3 w-3" /> Admin Secret Key
+                </p>
+                <code className="text-sm bg-secondary px-3 py-1.5 rounded-md block break-all">{adminStore.adminSecretKey}</code>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Language */}
         <div className="glass-card p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
@@ -80,7 +148,7 @@ export default function Profile() {
         </div>
 
         {/* Orders */}
-        <div className="glass-card p-6">
+        <div className="glass-card p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <Package className="h-5 w-5 text-primary" />
             <h2 className="font-bold">{t('profile.orders')}</h2>
@@ -106,6 +174,12 @@ export default function Profile() {
             </div>
           )}
         </div>
+
+        {/* Logout */}
+        <Button variant="destructive" className="w-full gap-2" onClick={handleLogout}>
+          <LogOut className="h-4 w-4" />
+          Logout
+        </Button>
       </div>
       <Footer />
     </div>
