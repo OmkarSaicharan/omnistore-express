@@ -4,6 +4,7 @@ import { ShoppingCart, Menu, User, LogOut, Shield, Home, Grid3X3, Store, Info, P
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { useStore } from '@/contexts/StoreContext';
 import { CartDrawer } from './CartDrawer';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -12,23 +13,26 @@ export function Navbar() {
   const { t } = useLanguage();
   const { user, logout, isAdmin } = useAuth();
   const { itemCount } = useCart();
+  const { storeId, store } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
+  const base = `/store/${storeId}`;
+  const storeName = store?.name || t('app.name');
+
   const navLinks = [
-    { to: '/home', label: t('nav.home'), icon: Home },
-    { to: '/shop', label: t('nav.shop'), icon: Store },
-    { to: '/categories', label: t('nav.categories'), icon: Grid3X3 },
-    { to: '/about', label: t('nav.about'), icon: Info },
-    { to: '/contact', label: t('nav.contact'), icon: Phone },
+    { to: `${base}/home`, label: t('nav.home'), icon: Home },
+    { to: `${base}/shop`, label: t('nav.shop'), icon: Store },
+    { to: `${base}/categories`, label: t('nav.categories'), icon: Grid3X3 },
+    { to: `${base}/about`, label: t('nav.about'), icon: Info },
+    { to: `${base}/contact`, label: t('nav.contact'), icon: Phone },
   ];
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
     <>
-      {/* Top header bar */}
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -40,7 +44,7 @@ export function Navbar() {
               </SheetTrigger>
               <SheetContent side="left" className="w-72 bg-card">
                 <div className="mt-8 flex flex-col gap-1">
-                  <Link to="/home" className="text-xl font-bold text-primary mb-6">{t('app.name')}</Link>
+                  <Link to={`${base}/home`} className="text-xl font-bold text-primary mb-6">{storeName}</Link>
                   {navLinks.map(link => (
                     <Link key={link.to} to={link.to} onClick={() => setMobileOpen(false)}
                       className={`px-4 py-3 rounded-lg font-medium flex items-center gap-3 transition-colors ${isActive(link.to) ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:bg-muted'}`}>
@@ -52,12 +56,12 @@ export function Navbar() {
                   {user ? (
                     <>
                       {isAdmin && (
-                        <Link to="/admin" onClick={() => setMobileOpen(false)}
+                        <Link to={`${base}/admin`} onClick={() => setMobileOpen(false)}
                           className="px-4 py-3 rounded-lg font-medium flex items-center gap-3 hover:bg-muted">
                           <Shield className="h-4 w-4" /> {t('nav.admin')}
                         </Link>
                       )}
-                      <Link to="/profile" onClick={() => setMobileOpen(false)}
+                      <Link to={`${base}/profile`} onClick={() => setMobileOpen(false)}
                         className="px-4 py-3 rounded-lg font-medium flex items-center gap-3 hover:bg-muted">
                         <User className="h-4 w-4" /> {t('nav.profile')}
                       </Link>
@@ -67,7 +71,7 @@ export function Navbar() {
                       </button>
                     </>
                   ) : (
-                    <Link to="/login" onClick={() => setMobileOpen(false)}
+                    <Link to={`${base}/login`} onClick={() => setMobileOpen(false)}
                       className="px-4 py-3 rounded-lg font-medium text-primary hover:bg-muted flex items-center gap-3">
                       <User className="h-4 w-4" /> {t('nav.login')}
                     </Link>
@@ -75,12 +79,11 @@ export function Navbar() {
                 </div>
               </SheetContent>
             </Sheet>
-            <Link to="/home" className="text-lg sm:text-xl font-bold text-primary">
-              {t('app.name')}
+            <Link to={`${base}/home`} className="text-lg sm:text-xl font-bold text-primary">
+              {storeName}
             </Link>
           </div>
 
-          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map(link => (
               <Link key={link.to} to={link.to}
@@ -91,7 +94,6 @@ export function Navbar() {
           </nav>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* Cart */}
             <button onClick={() => setCartOpen(true)} className="relative p-2 rounded-lg hover:bg-muted transition-colors">
               <ShoppingCart className="h-5 w-5" />
               {itemCount > 0 && (
@@ -101,18 +103,17 @@ export function Navbar() {
               )}
             </button>
 
-            {/* Auth Desktop */}
             <div className="hidden md:flex items-center gap-2">
               {user ? (
                 <>
                   {isAdmin && (
-                    <Link to="/admin">
+                    <Link to={`${base}/admin`}>
                       <Button variant="ghost" size="sm" className="gap-1">
                         <Shield className="h-4 w-4" /> {t('nav.admin')}
                       </Button>
                     </Link>
                   )}
-                  <Link to="/profile">
+                  <Link to={`${base}/profile`}>
                     <Button variant="ghost" size="sm" className="gap-1">
                       <User className="h-4 w-4" /> {t('nav.profile')}
                     </Button>
@@ -122,20 +123,19 @@ export function Navbar() {
                   </Button>
                 </>
               ) : (
-                <Link to="/login">
+                <Link to={`${base}/login`}>
                   <Button size="sm">{t('nav.login')}</Button>
                 </Link>
               )}
             </div>
 
-            {/* Mobile auth icon */}
             <div className="md:hidden">
               {user ? (
-                <Link to="/profile" className="p-2 rounded-lg hover:bg-muted">
+                <Link to={`${base}/profile`} className="p-2 rounded-lg hover:bg-muted">
                   <User className="h-5 w-5" />
                 </Link>
               ) : (
-                <Link to="/login" className="p-2 rounded-lg hover:bg-muted">
+                <Link to={`${base}/login`} className="p-2 rounded-lg hover:bg-muted">
                   <User className="h-5 w-5" />
                 </Link>
               )}

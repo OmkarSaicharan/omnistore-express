@@ -6,7 +6,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { CategoryCard } from '@/components/CategoryCard';
 import { useProducts } from '@/contexts/ProductContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { CATEGORIES } from '@/data/products';
+import { useStore } from '@/contexts/StoreContext';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { motion } from 'framer-motion';
 const Index = () => {
   const { products } = useProducts();
   const { t } = useLanguage();
+  const { categories } = useStore();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
 
@@ -33,7 +34,6 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
-      {/* Back to stores */}
       <div className="container mx-auto px-3 sm:px-4 pt-20 pb-2">
         <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => navigate('/')}>
           <ArrowLeft className="h-4 w-4" />
@@ -42,14 +42,16 @@ const Index = () => {
       </div>
       <Hero />
       {/* Categories */}
-      <section className="container mx-auto px-3 sm:px-4 py-8 sm:py-16">
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-8">{t('cat.title')}</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4">
-          {CATEGORIES.map((cat, i) => (
-            <CategoryCard key={cat.id} id={cat.id} image={cat.image} index={i} />
-          ))}
-        </div>
-      </section>
+      {categories.length > 0 && (
+        <section className="container mx-auto px-3 sm:px-4 py-8 sm:py-16">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-8">{t('cat.title')}</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4">
+            {categories.map((cat, i) => (
+              <CategoryCard key={cat.category_id} id={cat.category_id} label={cat.label} image={cat.image} index={i} />
+            ))}
+          </div>
+        </section>
+      )}
       {/* Featured with Search */}
       <section className="container mx-auto px-3 sm:px-4 pb-8 sm:pb-16">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-8">
@@ -60,7 +62,9 @@ const Index = () => {
           </div>
         </div>
         {featured.length === 0 ? (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-muted-foreground py-16">{t('shop.noProducts')}</motion.p>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-muted-foreground py-16">
+            {products.length === 0 ? 'No products yet. Admin can add products from the admin panel.' : t('shop.noProducts')}
+          </motion.p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {featured.map((product, i) => (
