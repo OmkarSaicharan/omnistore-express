@@ -21,6 +21,7 @@ export type Database = {
           items: Json
           ordered_at: string
           status: string
+          store_id: string
           total: number
           user_id: string
         }
@@ -30,6 +31,7 @@ export type Database = {
           items?: Json
           ordered_at?: string
           status?: string
+          store_id?: string
           total?: number
           user_id: string
         }
@@ -39,6 +41,7 @@ export type Database = {
           items?: Json
           ordered_at?: string
           status?: string
+          store_id?: string
           total?: number
           user_id?: string
         }
@@ -55,6 +58,7 @@ export type Database = {
           name: string
           price: number
           stock: number
+          store_id: string
         }
         Insert: {
           category: string
@@ -66,6 +70,7 @@ export type Database = {
           name: string
           price: number
           stock?: number
+          store_id?: string
         }
         Update: {
           category?: string
@@ -77,6 +82,7 @@ export type Database = {
           name?: string
           price?: number
           stock?: number
+          store_id?: string
         }
         Relationships: []
       }
@@ -104,6 +110,81 @@ export type Database = {
           registered_at?: string
           role?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      store_categories: {
+        Row: {
+          category_id: string
+          id: string
+          image: string | null
+          label: string
+          sort_order: number | null
+          store_id: string
+        }
+        Insert: {
+          category_id: string
+          id?: string
+          image?: string | null
+          label: string
+          sort_order?: number | null
+          store_id: string
+        }
+        Update: {
+          category_id?: string
+          id?: string
+          image?: string | null
+          label?: string
+          sort_order?: number | null
+          store_id?: string
+        }
+        Relationships: []
+      }
+      stores: {
+        Row: {
+          address: string | null
+          admin_user_id: string
+          badge: string | null
+          category: string | null
+          color: string | null
+          created_at: string | null
+          hero_image: string | null
+          icon: string | null
+          id: string
+          location: string | null
+          name: string
+          secret_key: string
+          tagline: string | null
+        }
+        Insert: {
+          address?: string | null
+          admin_user_id: string
+          badge?: string | null
+          category?: string | null
+          color?: string | null
+          created_at?: string | null
+          hero_image?: string | null
+          icon?: string | null
+          id: string
+          location?: string | null
+          name: string
+          secret_key: string
+          tagline?: string | null
+        }
+        Update: {
+          address?: string | null
+          admin_user_id?: string
+          badge?: string | null
+          category?: string | null
+          color?: string | null
+          created_at?: string | null
+          hero_image?: string | null
+          icon?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          secret_key?: string
+          tagline?: string | null
         }
         Relationships: []
       }

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStore } from '@/contexts/StoreContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -11,16 +12,18 @@ import { LogIn } from 'lucide-react';
 export default function Login() {
   const { t } = useLanguage();
   const { login } = useAuth();
+  const { storeId } = useStore();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const base = `/store/${storeId}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (await login(email, password)) {
-      navigate(email === 'omkarsaicharan@gmail.com' ? '/admin' : '/profile');
+      navigate(`${base}/profile`);
     } else {
       setError(t('auth.loginError'));
     }
@@ -50,7 +53,7 @@ export default function Login() {
           </form>
           <p className="text-center text-sm text-muted-foreground mt-4">
             {t('auth.noAccount')}{' '}
-            <Link to="/register" className="text-primary font-medium hover:underline">{t('auth.register')}</Link>
+            <Link to={`${base}/register`} className="text-primary font-medium hover:underline">{t('auth.register')}</Link>
           </p>
         </motion.div>
       </div>

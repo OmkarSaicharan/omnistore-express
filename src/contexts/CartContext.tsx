@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { CartItem, Product, Order } from '@/types';
 import { useAuth } from './AuthContext';
 import { useProducts } from './ProductContext';
+import { useStore } from './StoreContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CartContextType {
@@ -22,11 +23,17 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { updateProduct, products } = useProducts();
+  const { storeId } = useStore();
   const [items, setItems] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('omnistore-cart');
     return saved ? JSON.parse(saved) : [];
   });
   const [orders, setOrders] = useState<Order[]>([]);
+
+  // Clear cart when store changes
+  useEffect(() => {
+    setItems([]);
+  }, [storeId]);
 
   useEffect(() => {
     localStorage.setItem('omnistore-cart', JSON.stringify(items));
@@ -34,9 +41,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Fetch orders from cloud
   useEffect(() => {
-    if (!user) { setOrders([]); return; }
+    if (!user || !storeId) { setOrders([]); return; }
     const fetchOrders = async () => {
-      const { data } = await supabase.from('orders').select('*').eq('user_id', user.id);
+      const { data } = await supabase.from('orders').select('*').eq('user_id', user.id).eq('store_id', storeId);
       if (data) {
         setOrders(data.map(o => ({
           id: o.id,
@@ -50,7 +57,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     };
     fetchOrders();
-  }, [user]);
+  }, [user, storeId]);
 
   const addToCart = (product: Product) => {
     setItems(prev => {
@@ -78,7 +85,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   const checkout = async (): Promise<Order | null> => {
-    if (!user || items.length === 0) return null;
+    if (!user || items.length === 0 || !storeId) return null;
     const now = new Date().toISOString();
     const order: Order = {
       id: `ORD-${Math.floor(Math.random() * 10000)}`,
@@ -90,7 +97,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       status: 'Completed',
     };
 
-    // Save to cloud
     await supabase.from('orders').insert({
       id: order.id,
       user_id: order.userId,
@@ -99,9 +105,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       date: order.date,
       ordered_at: now,
       status: order.status,
+      store_id: storeId,
     });
 
-    // Decrease stock
     for (const item of items) {
       const current = products.find(p => p.id === item.product.id);
       if (current) {
@@ -115,7 +121,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const buyNow = async (product: Product): Promise<Order | null> => {
-    if (!user || product.stock <= 0) return null;
+    if (!user || product.stock <= 0 || !storeId) return null;
     const now = new Date().toISOString();
     const order: Order = {
       id: `ORD-${Math.floor(Math.random() * 10000)}`,
@@ -135,6 +141,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       date: order.date,
       ordered_at: now,
       status: order.status,
+      store_id: storeId,
     });
 
     const current = products.find(p => p.id === product.id);

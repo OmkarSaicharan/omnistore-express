@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 
 interface StoreItem {
   id: string;
@@ -18,39 +20,10 @@ interface StoreItem {
   badge?: string;
   color: string;
   icon: string;
-  adminEmail?: string;
-  adminSecretKey?: string;
 }
-
-const DEFAULT_STORES: StoreItem[] = [
-  {
-    id: 'omnistore',
-    name: 'OmniStore',
-    tagline: 'Your One Stop General Store',
-    category: 'General Store',
-    rating: 4.8,
-    reviews: 128,
-    location: 'Main Road, Local Market',
-    badge: 'Featured',
-    color: 'from-primary/20 to-primary/5',
-    icon: '🛒',
-  },
-];
 
 function generateSecretKey() {
   return 'SK-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
-}
-
-function getCustomStores(): StoreItem[] {
-  try {
-    return JSON.parse(localStorage.getItem('omnistore-custom-stores') || '[]');
-  } catch { return []; }
-}
-
-function saveCustomStore(store: StoreItem) {
-  const stores = getCustomStores();
-  stores.push(store);
-  localStorage.setItem('omnistore-custom-stores', JSON.stringify(stores));
 }
 
 export default function StoreSearch() {
@@ -58,6 +31,8 @@ export default function StoreSearch() {
   const { register } = useAuth();
   const [search, setSearch] = useState('');
   const [showRegister, setShowRegister] = useState(false);
+  const [stores, setStores] = useState<StoreItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     storeName: '', tagline: '', category: '', location: '',
     adminName: '', email: '', password: '',
@@ -65,9 +40,28 @@ export default function StoreSearch() {
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState('');
 
-  const allStores = useMemo(() => [...DEFAULT_STORES, ...getCustomStores()], [showRegister]);
+  const fetchStores = async () => {
+    const { data } = await supabase.from('stores').select('*');
+    if (data) {
+      setStores(data.map(s => ({
+        id: s.id,
+        name: s.name,
+        tagline: s.tagline || '',
+        category: s.category || '',
+        rating: 4.8,
+        reviews: 0,
+        location: s.location || '',
+        badge: s.badge || undefined,
+        color: s.color || 'from-primary/20 to-primary/5',
+        icon: s.icon || '🏪',
+      })));
+    }
+    setLoading(false);
+  };
 
-  const filtered = allStores.filter(
+  useEffect(() => { fetchStores(); }, []);
+
+  const filtered = stores.filter(
     s =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.category.toLowerCase().includes(search.toLowerCase()) ||
@@ -75,9 +69,7 @@ export default function StoreSearch() {
   );
 
   const handleEnterStore = (storeId: string) => {
-    if (storeId === 'omnistore') {
-      navigate('/home');
-    }
+    navigate(`/store/${storeId}/home`);
   };
 
   const handleRegisterStore = async () => {
@@ -91,27 +83,31 @@ export default function StoreSearch() {
     try {
       const secretKey = generateSecretKey();
       const storeId = 'store-' + Date.now();
-      const newStore: StoreItem = {
+      const userId = `user-${Date.now()}`;
+
+      // Register admin user first
+      await register(adminName, email, password, 'admin');
+
+      // Create store in DB
+      await supabase.from('stores').insert({
         id: storeId,
         name: storeName,
         tagline: tagline || `Welcome to ${storeName}`,
         category,
-        rating: 5.0,
-        reviews: 0,
         location: location || 'Online',
-        color: 'from-accent/20 to-accent/5',
+        address: location || '',
+        hero_image: '',
         icon: '🏪',
-        adminEmail: email,
-        adminSecretKey: secretKey,
-      };
-      saveCustomStore(newStore);
-
-      // Register admin user
-      await register(adminName, email, password, 'admin');
+        badge: '',
+        color: 'from-accent/20 to-accent/5',
+        admin_user_id: userId,
+        secret_key: secretKey,
+      });
 
       setShowRegister(false);
       setFormData({ storeName: '', tagline: '', category: '', location: '', adminName: '', email: '', password: '' });
       alert(`Store registered! Your admin secret key is: ${secretKey}\nSave it securely.`);
+      fetchStores();
     } catch {
       setError('Registration failed. Try again.');
     } finally {
@@ -154,7 +150,7 @@ export default function StoreSearch() {
 
         <div className="mb-4">
           <p className="text-sm text-muted-foreground">
-            {filtered.length === 0 ? 'No stores found' : `${filtered.length} store${filtered.length !== 1 ? 's' : ''} available`}
+            {loading ? 'Loading stores...' : filtered.length === 0 ? 'No stores found' : `${filtered.length} store${filtered.length !== 1 ? 's' : ''} available`}
           </p>
         </div>
 
@@ -202,7 +198,7 @@ export default function StoreSearch() {
           ))}
         </div>
 
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 text-muted-foreground">
             <Store className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p className="text-lg font-medium">No stores found</p>

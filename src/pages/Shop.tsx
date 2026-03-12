@@ -6,13 +6,14 @@ import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import { useProducts } from '@/contexts/ProductContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { CATEGORIES } from '@/data/products';
+import { useStore } from '@/contexts/StoreContext';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
 
 export default function Shop() {
   const { products } = useProducts();
   const { t } = useLanguage();
+  const { categories } = useStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const activeCategory = searchParams.get('category') || '';
@@ -22,13 +23,10 @@ export default function Shop() {
     if (activeCategory) result = result.filter(p => p.category === activeCategory);
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter(p => {
-        const name = t(`product.${p.id}`) !== `product.${p.id}` ? t(`product.${p.id}`) : p.name;
-        return name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
-      });
+      result = result.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
     }
     return result;
-  }, [products, activeCategory, search, t]);
+  }, [products, activeCategory, search]);
 
   return (
     <div className="min-h-screen">
@@ -48,17 +46,19 @@ export default function Shop() {
               className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${!activeCategory ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
               {t('shop.all')}
             </button>
-            {CATEGORIES.map(cat => (
-              <button key={cat.id} onClick={() => setSearchParams({ category: cat.id })}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeCategory === cat.id ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
-                {t(`cat.${cat.id}`)}
+            {categories.map(cat => (
+              <button key={cat.category_id} onClick={() => setSearchParams({ category: cat.category_id })}
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeCategory === cat.category_id ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
+                {cat.label}
               </button>
             ))}
           </div>
         </div>
 
         {filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground py-16">{t('shop.noProducts')}</p>
+          <p className="text-center text-muted-foreground py-16">
+            {products.length === 0 ? 'No products yet. Admin can add products from the admin panel.' : t('shop.noProducts')}
+          </p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {filtered.map((product, i) => (

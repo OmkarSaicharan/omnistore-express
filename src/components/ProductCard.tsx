@@ -5,6 +5,7 @@ import { Product } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStore } from '@/contexts/StoreContext';
 import { useNavigate } from 'react-router-dom';
 import { StockBar } from './StockBar';
 import { Button } from '@/components/ui/button';
@@ -20,13 +21,16 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const { t } = useLanguage();
   const { addToCart, buyNow } = useCart();
   const { user } = useAuth();
+  const { storeId, store } = useStore();
   const navigate = useNavigate();
   const [showPayment, setShowPayment] = useState(false);
-  const name = t(`product.${product.id}`) !== `product.${product.id}` ? t(`product.${product.id}`) : product.name;
-  const desc = t(`product.${product.id}.desc`) !== `product.${product.id}.desc` ? t(`product.${product.id}.desc`) : product.description;
+  const name = product.name;
+  const desc = product.description;
+  const base = `/store/${storeId}`;
+  const storeName = store?.name || 'Store';
 
   const requireLogin = () => {
-    if (!user) { toast.error('Please login first'); navigate('/login'); return true; }
+    if (!user) { toast.error('Please login first'); navigate(`${base}/login`); return true; }
     return false;
   };
 
@@ -46,9 +50,9 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
     if (order) {
       const upiId = '9392965097@ybl';
       const links: Record<string, string> = {
-        phonePe: `phonepe://pay?pa=${upiId}&pn=OmniStore&am=${product.price}&tn=OmniStore+Order+${order.id}`,
-        googlePay: `tez://upi/pay?pa=${upiId}&pn=OmniStore&am=${product.price}&tn=OmniStore+Order+${order.id}`,
-        paytm: `paytmmp://pay?pa=${upiId}&pn=OmniStore&am=${product.price}&tn=OmniStore+Order+${order.id}`,
+        phonePe: `phonepe://pay?pa=${upiId}&pn=${storeName}&am=${product.price}&tn=${storeName}+Order+${order.id}`,
+        googlePay: `tez://upi/pay?pa=${upiId}&pn=${storeName}&am=${product.price}&tn=${storeName}+Order+${order.id}`,
+        paytm: `paytmmp://pay?pa=${upiId}&pn=${storeName}&am=${product.price}&tn=${storeName}+Order+${order.id}`,
       };
       window.open(links[method], '_blank');
       toast.success(`Order ${order.id} placed for ${name}!`);

@@ -3,17 +3,19 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStore } from '@/contexts/StoreContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { UserPlus, Shield, ChevronDown, ChevronUp } from 'lucide-react';
-
-const ADMIN_SECRET_KEY = 'OMNISTORE_ADMIN_2024';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Register() {
   const { t } = useLanguage();
   const { register } = useAuth();
+  const { storeId, store } = useStore();
   const navigate = useNavigate();
+  const base = `/store/${storeId}`;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +33,7 @@ export default function Register() {
     e.preventDefault();
     setError('');
     if (await register(name, email, password)) {
-      navigate('/profile');
+      navigate(`${base}/profile`);
     } else {
       setError(t('auth.registerError'));
     }
@@ -41,16 +43,20 @@ export default function Register() {
     e.preventDefault();
     setAdminError('');
 
-    if (adminSecretKey !== ADMIN_SECRET_KEY) {
+    // Validate secret key against store's secret key
+    if (!store) {
+      setAdminError('Store not found');
+      return;
+    }
+
+    if (adminSecretKey !== store.secret_key) {
       setAdminError('Invalid admin secret key. Please contact the store owner.');
       return;
     }
 
-    // Register as admin — we pass an extra marker via email prefix for now
-    // The AuthContext will handle admin role assignment
     const success = await register(adminName, adminEmail, adminPassword, 'admin');
     if (success) {
-      navigate('/admin');
+      navigate(`${base}/admin`);
     } else {
       setAdminError(t('auth.registerError'));
     }
@@ -86,11 +92,11 @@ export default function Register() {
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
               {t('auth.hasAccount')}{' '}
-              <Link to="/login" className="text-primary font-medium hover:underline">{t('auth.login')}</Link>
+              <Link to={`${base}/login`} className="text-primary font-medium hover:underline">{t('auth.login')}</Link>
             </p>
           </motion.div>
 
-          {/* Admin Register (collapsible) */}
+          {/* Admin Register */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }} className="glass-card overflow-hidden">
             <button
@@ -112,7 +118,7 @@ export default function Register() {
                 className="px-6 pb-6 pt-2 border-t border-border/50"
               >
                 <p className="text-xs text-muted-foreground mb-4">
-                  Admin accounts require a secret key from the store owner.
+                  Admin accounts require the store's secret key from the store owner.
                 </p>
                 <form onSubmit={handleAdminSubmit} className="space-y-3">
                   <div>

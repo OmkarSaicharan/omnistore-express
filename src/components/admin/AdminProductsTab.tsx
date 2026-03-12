@@ -4,9 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { StockBar } from '@/components/StockBar';
 import { useProducts } from '@/contexts/ProductContext';
+import { useStore } from '@/contexts/StoreContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Product } from '@/types';
-import { CATEGORIES } from '@/data/products';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
@@ -18,6 +18,7 @@ interface Props {
 
 export function AdminProductsTab({ onEdit, onDelete, onAdd, onAddCategory }: Props) {
   const { products } = useProducts();
+  const { categories } = useStore();
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -31,7 +32,7 @@ export function AdminProductsTab({ onEdit, onDelete, onAdd, onAddCategory }: Pro
     });
   };
 
-  const expandAll = () => setExpandedCategories(new Set(CATEGORIES.map(c => c.id)));
+  const expandAll = () => setExpandedCategories(new Set(categories.map(c => c.category_id)));
   const collapseAll = () => setExpandedCategories(new Set());
 
   const filteredProducts = search.trim()
@@ -42,14 +43,17 @@ export function AdminProductsTab({ onEdit, onDelete, onAdd, onAddCategory }: Pro
     : products;
 
   // Group by category
-  const grouped = CATEGORIES.map(cat => ({
+  const grouped = categories.map(cat => ({
     ...cat,
-    items: filteredProducts.filter(p => p.category === cat.id),
+    items: filteredProducts.filter(p => p.category === cat.category_id),
   })).filter(g => g.items.length > 0);
 
-  // When searching, expand all matching categories automatically
+  // Also include uncategorized products
+  const categorizedIds = new Set(categories.map(c => c.category_id));
+  const uncategorized = filteredProducts.filter(p => !categorizedIds.has(p.category));
+
   const effectiveExpanded = search.trim()
-    ? new Set(grouped.map(g => g.id))
+    ? new Set(grouped.map(g => g.category_id))
     : expandedCategories;
 
   return (
@@ -77,27 +81,27 @@ export function AdminProductsTab({ onEdit, onDelete, onAdd, onAddCategory }: Pro
         </div>
       </div>
 
-      {/* Category Accordion */}
-      {grouped.length === 0 ? (
-        <p className="text-center text-muted-foreground py-16">No products found</p>
+      {grouped.length === 0 && uncategorized.length === 0 ? (
+        <p className="text-center text-muted-foreground py-16">
+          {products.length === 0 ? 'No products yet. Add your first product!' : 'No products found'}
+        </p>
       ) : (
         <div className="space-y-3">
           {grouped.map(cat => {
-            const isOpen = effectiveExpanded.has(cat.id);
+            const isOpen = effectiveExpanded.has(cat.category_id);
             return (
-              <div key={cat.id} className="glass-card overflow-hidden">
-                {/* Category Header */}
+              <div key={cat.category_id} className="glass-card overflow-hidden">
                 <button
-                  onClick={() => toggleCategory(cat.id)}
+                  onClick={() => toggleCategory(cat.category_id)}
                   className="w-full flex items-center gap-3 p-4 hover:bg-secondary/40 transition-colors"
                 >
                   <img
                     src={cat.image}
-                    alt={t(`cat.${cat.id}`)}
+                    alt={cat.label}
                     className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                   />
                   <div className="flex-1 text-left">
-                    <span className="font-semibold capitalize">{t(`cat.${cat.id}`)}</span>
+                    <span className="font-semibold capitalize">{cat.label}</span>
                     <span className="ml-2 text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
                       {cat.items.length} item{cat.items.length !== 1 ? 's' : ''}
                     </span>
@@ -105,7 +109,6 @@ export function AdminProductsTab({ onEdit, onDelete, onAdd, onAddCategory }: Pro
                   {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                 </button>
 
-                {/* Products Table */}
                 <AnimatePresence initial={false}>
                   {isOpen && (
                     <motion.div
@@ -130,12 +133,8 @@ export function AdminProductsTab({ onEdit, onDelete, onAdd, onAddCategory }: Pro
                             {cat.items.map(p => (
                               <tr key={p.id} className="border-t hover:bg-secondary/20 transition-colors">
                                 <td className="p-3">
-                                  <img
-                                    src={p.image}
-                                    alt={p.name}
-                                    className="w-9 h-9 rounded-lg object-cover"
-                                    onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
-                                  />
+                                  <img src={p.image} alt={p.name} className="w-9 h-9 rounded-lg object-cover"
+                                    onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
                                 </td>
                                 <td className="p-3">
                                   <p className="text-sm font-medium">{p.name}</p>
@@ -164,6 +163,38 @@ export function AdminProductsTab({ onEdit, onDelete, onAdd, onAddCategory }: Pro
               </div>
             );
           })}
+
+          {uncategorized.length > 0 && (
+            <div className="glass-card overflow-hidden">
+              <div className="p-4 font-semibold text-muted-foreground">Uncategorized ({uncategorized.length})</div>
+              <div className="overflow-x-auto border-t">
+                <table className="w-full">
+                  <tbody>
+                    {uncategorized.map(p => (
+                      <tr key={p.id} className="border-t hover:bg-secondary/20 transition-colors">
+                        <td className="p-3">
+                          <img src={p.image} alt={p.name} className="w-9 h-9 rounded-lg object-cover"
+                            onError={e => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }} />
+                        </td>
+                        <td className="p-3"><p className="text-sm font-medium">{p.name}</p></td>
+                        <td className="p-3 text-sm">₹{p.price}</td>
+                        <td className="p-3">
+                          <div className="flex gap-1">
+                            <button onClick={() => onEdit(p)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button onClick={() => onDelete(p.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

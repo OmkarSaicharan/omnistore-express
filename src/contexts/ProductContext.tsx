@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { useStore } from './StoreContext';
 
 interface ProductContextType {
   products: Product[];
@@ -13,11 +14,13 @@ interface ProductContextType {
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export function ProductProvider({ children }: { children: ReactNode }) {
+  const { storeId } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
+    if (!storeId) { setProducts([]); return; }
     const fetchProducts = async () => {
-      const { data } = await supabase.from('products').select('*');
+      const { data } = await supabase.from('products').select('*').eq('store_id', storeId);
       if (data) {
         setProducts(data.map(p => ({
           id: p.id,
@@ -32,7 +35,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       }
     };
     fetchProducts();
-  }, []);
+  }, [storeId]);
 
   const updateProduct = async (id: string, updates: Partial<Product>) => {
     const dbUpdates: Record<string, unknown> = {};
@@ -58,6 +61,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       description: product.description,
       stock: product.stock,
       max_stock: product.maxStock,
+      store_id: storeId,
     });
     setProducts(prev => [...prev, product]);
   };

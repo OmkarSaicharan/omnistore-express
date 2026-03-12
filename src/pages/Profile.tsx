@@ -5,10 +5,11 @@ import { Footer } from '@/components/Footer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { useStore } from '@/contexts/StoreContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { User, Package, Globe, LogOut, Shield, Key } from 'lucide-react';
+import { User, Package, Globe, LogOut, Shield, Key, MapPin } from 'lucide-react';
 import { Language } from '@/types';
 
 const LANGUAGES: { code: Language; label: string }[] = [
@@ -18,37 +19,20 @@ const LANGUAGES: { code: Language; label: string }[] = [
   { code: 'kn', label: 'ಕನ್ನಡ' },
 ];
 
-function getAdminStore(email: string) {
-  try {
-    const stores = JSON.parse(localStorage.getItem('omnistore-custom-stores') || '[]');
-    return stores.find((s: any) => s.adminEmail === email) || null;
-  } catch { return null; }
-}
-
-function updateStoreName(email: string, newName: string) {
-  try {
-    const stores = JSON.parse(localStorage.getItem('omnistore-custom-stores') || '[]');
-    const idx = stores.findIndex((s: any) => s.adminEmail === email);
-    if (idx !== -1) {
-      stores[idx].name = newName;
-      localStorage.setItem('omnistore-custom-stores', JSON.stringify(stores));
-    }
-  } catch {}
-}
-
 export default function Profile() {
   const { t, language, setLanguage } = useLanguage();
   const { user, updateUser, logout, isAdmin } = useAuth();
   const { orders } = useCart();
+  const { storeId, store, updateStore } = useStore();
   const navigate = useNavigate();
   const [editName, setEditName] = useState(user?.name || '');
   const [editing, setEditing] = useState(false);
   const [editStoreName, setEditStoreName] = useState('');
   const [editingStore, setEditingStore] = useState(false);
+  const [editAddress, setEditAddress] = useState('');
+  const [editingAddress, setEditingAddress] = useState(false);
 
-  if (!user) return <Navigate to="/login" replace />;
-
-  const adminStore = isAdmin ? getAdminStore(user.email) : null;
+  if (!user) return <Navigate to={`/store/${storeId}/login`} replace />;
 
   const handleSave = () => {
     updateUser({ name: editName });
@@ -60,10 +44,17 @@ export default function Profile() {
     navigate('/');
   };
 
-  const handleSaveStoreName = () => {
-    if (editStoreName.trim() && adminStore) {
-      updateStoreName(user.email, editStoreName.trim());
+  const handleSaveStoreName = async () => {
+    if (editStoreName.trim()) {
+      await updateStore({ name: editStoreName.trim() });
       setEditingStore(false);
+    }
+  };
+
+  const handleSaveAddress = async () => {
+    if (editAddress.trim()) {
+      await updateStore({ address: editAddress.trim() });
+      setEditingAddress(false);
     }
   };
 
@@ -99,13 +90,14 @@ export default function Profile() {
         </div>
 
         {/* Admin Section */}
-        {isAdmin && adminStore && (
+        {isAdmin && store && (
           <div className="glass-card p-6 mb-6">
             <div className="flex items-center gap-2 mb-4">
               <Shield className="h-5 w-5 text-primary" />
               <h2 className="font-bold">Admin Settings</h2>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Store Name */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Store Name</p>
                 {editingStore ? (
@@ -116,16 +108,37 @@ export default function Profile() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">{adminStore.name}</span>
-                    <Button variant="ghost" size="sm" onClick={() => { setEditStoreName(adminStore.name); setEditingStore(true); }}>Edit</Button>
+                    <span className="font-semibold">{store.name}</span>
+                    <Button variant="ghost" size="sm" onClick={() => { setEditStoreName(store.name); setEditingStore(true); }}>Edit</Button>
                   </div>
                 )}
               </div>
+
+              {/* Store Address */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> Store Address
+                </p>
+                {editingAddress ? (
+                  <div className="flex gap-2">
+                    <Input value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="Enter store address" />
+                    <Button onClick={handleSaveAddress}>Save</Button>
+                    <Button variant="outline" onClick={() => setEditingAddress(false)}>Cancel</Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{store.address || 'Not set'}</span>
+                    <Button variant="ghost" size="sm" onClick={() => { setEditAddress(store.address || ''); setEditingAddress(true); }}>Edit</Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Secret Key */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
                   <Key className="h-3 w-3" /> Admin Secret Key
                 </p>
-                <code className="text-sm bg-secondary px-3 py-1.5 rounded-md block break-all">{adminStore.adminSecretKey}</code>
+                <code className="text-sm bg-secondary px-3 py-1.5 rounded-md block break-all">{store.secret_key}</code>
               </div>
             </div>
           </div>

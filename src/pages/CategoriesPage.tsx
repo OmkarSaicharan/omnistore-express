@@ -2,11 +2,12 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { CategoryCard } from '@/components/CategoryCard';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { CATEGORIES } from '@/data/products';
+import { useStore } from '@/contexts/StoreContext';
 import { motion } from 'framer-motion';
 
 export default function CategoriesPage() {
   const { t } = useLanguage();
+  const { categories } = useStore();
 
   return (
     <div className="min-h-screen">
@@ -16,11 +17,15 @@ export default function CategoriesPage() {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">{t('cat.title')}</h1>
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8">{t('cat.subtitle')}</p>
         </motion.div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
-          {CATEGORIES.map((cat, i) => (
-            <CategoryCard key={cat.id} id={cat.id} image={cat.image} index={i} />
-          ))}
-        </div>
+        {categories.length === 0 ? (
+          <p className="text-center text-muted-foreground py-16">No categories yet. Admin can add categories from the admin panel.</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
+            {categories.map((cat, i) => (
+              <CategoryCard key={cat.category_id} id={cat.category_id} label={cat.label} image={cat.image} index={i} />
+            ))}
+          </div>
+        )}
       </div>
       <Footer />
     </div>
