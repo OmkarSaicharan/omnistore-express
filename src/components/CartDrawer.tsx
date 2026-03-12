@@ -2,6 +2,7 @@ import { ShoppingBag, Plus, Minus, Trash2, CreditCard } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStore } from '@/contexts/StoreContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -18,13 +19,16 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const { t } = useLanguage();
   const { items, removeFromCart, updateQuantity, total, checkout } = useCart();
   const { user } = useAuth();
+  const { storeId, store } = useStore();
   const navigate = useNavigate();
   const [showPayment, setShowPayment] = useState(false);
+  const base = `/store/${storeId}`;
+  const storeName = store?.name || 'Store';
 
   const handleBuyNow = () => {
     if (!user) {
       onOpenChange(false);
-      navigate('/login');
+      navigate(`${base}/login`);
       return;
     }
     setShowPayment(true);
@@ -35,9 +39,9 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
     if (order) {
       const upiId = '9392965097@ybl';
       const links: Record<string, string> = {
-        phonePe: `phonepe://pay?pa=${upiId}&pn=OmniStore&am=${total}&tn=OmniStore+Order+${order.id}`,
-        googlePay: `tez://upi/pay?pa=${upiId}&pn=OmniStore&am=${total}&tn=OmniStore+Order+${order.id}`,
-        paytm: `paytmmp://pay?pa=${upiId}&pn=OmniStore&am=${total}&tn=OmniStore+Order+${order.id}`,
+        phonePe: `phonepe://pay?pa=${upiId}&pn=${storeName}&am=${total}&tn=${storeName}+Order+${order.id}`,
+        googlePay: `tez://upi/pay?pa=${upiId}&pn=${storeName}&am=${total}&tn=${storeName}+Order+${order.id}`,
+        paytm: `paytmmp://pay?pa=${upiId}&pn=${storeName}&am=${total}&tn=${storeName}+Order+${order.id}`,
       };
       window.open(links[method], '_blank');
       toast.success(`Order ${order.id} placed successfully!`);
@@ -67,7 +71,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
               <div className="flex-1 flex flex-col items-center justify-center gap-4">
                 <ShoppingBag className="h-16 w-16 text-muted-foreground/30" />
                 <p className="text-muted-foreground">{t('cart.empty')}</p>
-                <Button onClick={() => { onOpenChange(false); navigate('/shop'); }}>
+                <Button onClick={() => { onOpenChange(false); navigate(`${base}/shop`); }}>
                   {t('cart.goToShop')}
                 </Button>
               </div>
