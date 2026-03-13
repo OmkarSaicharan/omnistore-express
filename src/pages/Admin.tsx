@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
-import { BarChart3, Package, AlertTriangle, DollarSign, Plus, Settings, MapPin, Image } from 'lucide-react';
+import { BarChart3, Package, AlertTriangle, DollarSign, Plus, Settings, MapPin, Image, Pencil } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { toast } from 'sonner';
 import { CustomersTab } from '@/components/admin/CustomersTab';
@@ -24,15 +24,16 @@ export default function Admin() {
   const { t } = useLanguage();
   const { isAdmin } = useAuth();
   const { products, updateProduct, addProduct, deleteProduct } = useProducts();
-  const { storeId, store, categories, updateStore, addCategory, deleteCategory } = useStore();
+  const { storeId, store, categories, updateStore, addCategory, updateCategory, deleteCategory } = useStore();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editForm, setEditForm] = useState(emptyForm);
   const [isAdding, setIsAdding] = useState(false);
   const [tab, setTab] = useState<'dashboard' | 'products' | 'customers' | 'settings'>('dashboard');
 
-  // Add category dialog
-  const [showAddCategory, setShowAddCategory] = useState(false);
+  // Add/Edit category dialog
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
 
   // Store settings
   const [storeName, setStoreName] = useState(store?.name || '');
@@ -50,13 +51,8 @@ export default function Admin() {
   const openEdit = (product: Product) => {
     setEditingProduct(product);
     setEditForm({
-      name: product.name,
-      price: product.price,
-      stock: product.stock,
-      maxStock: product.maxStock,
-      image: product.image,
-      category: product.category,
-      description: product.description,
+      name: product.name, price: product.price, stock: product.stock,
+      maxStock: product.maxStock, image: product.image, category: product.category, description: product.description,
     });
     setIsAdding(false);
   };
@@ -84,14 +80,19 @@ export default function Admin() {
     toast.success('Product added successfully!');
   };
 
-  const handleDelete = (id: string) => {
-    deleteProduct(id);
-    toast.success('Product deleted!');
+  const handleDelete = (id: string) => { deleteProduct(id); toast.success('Product deleted!'); };
+  const closeDialog = () => { setEditingProduct(null); setIsAdding(false); };
+
+  const openAddCategory = () => {
+    setCategoryForm(emptyCategoryForm);
+    setEditingCategoryId(null);
+    setShowCategoryDialog(true);
   };
 
-  const closeDialog = () => {
-    setEditingProduct(null);
-    setIsAdding(false);
+  const openEditCategory = (cat: typeof categories[0]) => {
+    setCategoryForm({ id: cat.category_id, label: cat.label, image: cat.image });
+    setEditingCategoryId(cat.id);
+    setShowCategoryDialog(true);
   };
 
   const handleSaveCategory = async () => {
@@ -99,16 +100,26 @@ export default function Admin() {
       toast.error('Category ID and label are required');
       return;
     }
-    await addCategory({
-      store_id: storeId,
-      category_id: categoryForm.id.toLowerCase().replace(/\s+/g, '-'),
-      label: categoryForm.label,
-      image: categoryForm.image,
-      sort_order: categories.length,
-    });
-    toast.success(`Category "${categoryForm.label}" added!`);
-    setShowAddCategory(false);
+    if (editingCategoryId) {
+      await updateCategory(editingCategoryId, {
+        category_id: categoryForm.id.toLowerCase().replace(/\s+/g, '-'),
+        label: categoryForm.label,
+        image: categoryForm.image,
+      });
+      toast.success(`Category "${categoryForm.label}" updated!`);
+    } else {
+      await addCategory({
+        store_id: storeId,
+        category_id: categoryForm.id.toLowerCase().replace(/\s+/g, '-'),
+        label: categoryForm.label,
+        image: categoryForm.image,
+        sort_order: categories.length,
+      });
+      toast.success(`Category "${categoryForm.label}" added!`);
+    }
+    setShowCategoryDialog(false);
     setCategoryForm(emptyCategoryForm);
+    setEditingCategoryId(null);
   };
 
   const handleDeleteCategory = async (catId: string) => {
@@ -117,12 +128,7 @@ export default function Admin() {
   };
 
   const handleSaveStoreSettings = async () => {
-    await updateStore({
-      name: storeName,
-      address: storeAddress,
-      hero_image: storeHeroImage,
-      tagline: storeTagline,
-    });
+    await updateStore({ name: storeName, address: storeAddress, hero_image: storeHeroImage, tagline: storeTagline });
     toast.success('Store settings saved!');
   };
 
@@ -173,12 +179,7 @@ export default function Admin() {
         )}
 
         {tab === 'products' && (
-          <AdminProductsTab
-            onEdit={openEdit}
-            onDelete={handleDelete}
-            onAdd={openAdd}
-            onAddCategory={() => setShowAddCategory(true)}
-          />
+          <AdminProductsTab onEdit={openEdit} onDelete={handleDelete} onAdd={openAdd} onAddCategory={openAddCategory} />
         )}
 
         {tab === 'customers' && <CustomersTab />}
@@ -218,11 +219,11 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Categories Management */}
+            {/* Categories Management with Edit */}
             <div className="glass-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-lg">Categories</h2>
-                <Button size="sm" onClick={() => setShowAddCategory(true)} className="gap-1">
+                <Button size="sm" onClick={openAddCategory} className="gap-1">
                   <Plus className="h-4 w-4" /> Add Category
                 </Button>
               </div>
@@ -238,6 +239,9 @@ export default function Admin() {
                         <p className="font-medium text-sm">{cat.label}</p>
                         <p className="text-xs text-muted-foreground">{cat.category_id}</p>
                       </div>
+                      <Button variant="ghost" size="sm" onClick={() => openEditCategory(cat)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                       <Button variant="destructive" size="sm" onClick={() => handleDeleteCategory(cat.id)}>Delete</Button>
                     </div>
                   ))}
@@ -308,12 +312,13 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Category Dialog */}
-      <Dialog open={showAddCategory} onOpenChange={setShowAddCategory}>
+      {/* Add/Edit Category Dialog */}
+      <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
         <DialogContent className="bg-card">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" /> Add New Category
+              {editingCategoryId ? <Pencil className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+              {editingCategoryId ? 'Edit Category' : 'Add New Category'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
@@ -323,23 +328,16 @@ export default function Admin() {
                 value={categoryForm.id}
                 onChange={e => setCategoryForm(p => ({ ...p, id: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
                 placeholder="fruits"
+                disabled={!!editingCategoryId}
               />
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Display Name</label>
-              <Input
-                value={categoryForm.label}
-                onChange={e => setCategoryForm(p => ({ ...p, label: e.target.value }))}
-                placeholder="Fruits & Vegetables"
-              />
+              <Input value={categoryForm.label} onChange={e => setCategoryForm(p => ({ ...p, label: e.target.value }))} placeholder="Fruits & Vegetables" />
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Category Image URL</label>
-              <Input
-                value={categoryForm.image}
-                onChange={e => setCategoryForm(p => ({ ...p, image: e.target.value }))}
-                placeholder="https://images.unsplash.com/..."
-              />
+              <Input value={categoryForm.image} onChange={e => setCategoryForm(p => ({ ...p, image: e.target.value }))} placeholder="https://images.unsplash.com/..." />
             </div>
             {categoryForm.image && (
               <div className="flex justify-center">
@@ -348,8 +346,8 @@ export default function Admin() {
               </div>
             )}
             <div className="flex gap-2">
-              <Button onClick={handleSaveCategory} className="flex-1">Add Category</Button>
-              <Button variant="outline" onClick={() => setShowAddCategory(false)} className="flex-1">Cancel</Button>
+              <Button onClick={handleSaveCategory} className="flex-1">{editingCategoryId ? 'Save Changes' : 'Add Category'}</Button>
+              <Button variant="outline" onClick={() => setShowCategoryDialog(false)} className="flex-1">Cancel</Button>
             </div>
           </div>
         </DialogContent>

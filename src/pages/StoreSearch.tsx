@@ -1,13 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Store, MapPin, Star, ArrowRight, Plus } from 'lucide-react';
+import { Search, Store, MapPin, Star, ArrowRight, Plus, ShoppingCart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect } from 'react';
 
 interface StoreItem {
   id: string;
@@ -15,7 +14,6 @@ interface StoreItem {
   tagline: string;
   category: string;
   rating: number;
-  reviews: number;
   location: string;
   badge?: string;
   color: string;
@@ -34,7 +32,7 @@ export default function StoreSearch() {
   const [stores, setStores] = useState<StoreItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    storeName: '', tagline: '', category: '', location: '',
+    storeName: '', tagline: '', category: '', location: '', state: '',
     adminName: '', email: '', password: '',
   });
   const [registering, setRegistering] = useState(false);
@@ -49,7 +47,6 @@ export default function StoreSearch() {
         tagline: s.tagline || '',
         category: s.category || '',
         rating: 4.8,
-        reviews: 0,
         location: s.location || '',
         badge: s.badge || undefined,
         color: s.color || 'from-primary/20 to-primary/5',
@@ -74,7 +71,7 @@ export default function StoreSearch() {
 
   const handleRegisterStore = async () => {
     setError('');
-    const { storeName, tagline, category, location, adminName, email, password } = formData;
+    const { storeName, tagline, category, location, state, adminName, email, password } = formData;
     if (!storeName || !category || !adminName || !email || !password) {
       setError('Please fill all required fields');
       return;
@@ -85,10 +82,8 @@ export default function StoreSearch() {
       const storeId = 'store-' + Date.now();
       const userId = `user-${Date.now()}`;
 
-      // Register admin user first
-      await register(adminName, email, password, 'admin');
+      await register(adminName, email, password, 'admin', storeId);
 
-      // Create store in DB
       await supabase.from('stores').insert({
         id: storeId,
         name: storeName,
@@ -99,13 +94,14 @@ export default function StoreSearch() {
         hero_image: '',
         icon: '🏪',
         badge: '',
-        color: 'from-accent/20 to-accent/5',
+        color: 'from-primary/20 to-primary/5',
         admin_user_id: userId,
         secret_key: secretKey,
-      });
+        state: state || '',
+      } as any);
 
       setShowRegister(false);
-      setFormData({ storeName: '', tagline: '', category: '', location: '', adminName: '', email: '', password: '' });
+      setFormData({ storeName: '', tagline: '', category: '', location: '', state: '', adminName: '', email: '', password: '' });
       alert(`Store registered! Your admin secret key is: ${secretKey}\nSave it securely.`);
       fetchStores();
     } catch {
@@ -117,7 +113,6 @@ export default function StoreSearch() {
 
   return (
     <div className="min-h-screen">
-      {/* Top bar */}
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -132,7 +127,6 @@ export default function StoreSearch() {
       </header>
 
       <div className="pt-20 pb-10 container mx-auto px-4">
-        {/* Hero */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-10">
           <h1 className="text-3xl sm:text-4xl font-bold mb-3">Find your store</h1>
           <p className="text-muted-foreground text-lg mb-8">Discover shops and explore their products</p>
@@ -154,7 +148,7 @@ export default function StoreSearch() {
           </p>
         </div>
 
-        {/* Store cards */}
+        {/* Store cards - all with same cart icon style */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((store, i) => (
             <motion.div
@@ -162,11 +156,10 @@ export default function StoreSearch() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="glass-card overflow-hidden group hover:shadow-lg transition-all duration-300 cursor-pointer"
-              onClick={() => handleEnterStore(store.id)}
+              className="bg-card rounded-xl overflow-hidden group hover:shadow-lg transition-all duration-300 border border-border/50"
             >
               <div className={`h-28 bg-gradient-to-br ${store.color} flex items-center justify-center relative`}>
-                <span className="text-5xl">{store.icon}</span>
+                <ShoppingCart className="h-16 w-16 text-muted-foreground/40" />
                 {store.badge && (
                   <span className="absolute top-3 right-3 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
                     {store.badge}
@@ -188,7 +181,7 @@ export default function StoreSearch() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">{store.category}</span>
-                  <Button size="sm" className="gap-1.5 group-hover:gap-2.5 transition-all">
+                  <Button size="sm" className="gap-1.5 group-hover:gap-2.5 transition-all" onClick={() => handleEnterStore(store.id)}>
                     Enter Store
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
@@ -218,7 +211,8 @@ export default function StoreSearch() {
             <Input placeholder="Store Name *" value={formData.storeName} onChange={e => setFormData(p => ({ ...p, storeName: e.target.value }))} />
             <Input placeholder="Tagline" value={formData.tagline} onChange={e => setFormData(p => ({ ...p, tagline: e.target.value }))} />
             <Input placeholder="Category * (e.g. General Store)" value={formData.category} onChange={e => setFormData(p => ({ ...p, category: e.target.value }))} />
-            <Input placeholder="Location" value={formData.location} onChange={e => setFormData(p => ({ ...p, location: e.target.value }))} />
+            <Input placeholder="Location / City" value={formData.location} onChange={e => setFormData(p => ({ ...p, location: e.target.value }))} />
+            <Input placeholder="State" value={formData.state} onChange={e => setFormData(p => ({ ...p, state: e.target.value }))} />
             <hr className="border-border" />
             <p className="text-sm font-medium text-muted-foreground">Admin Account</p>
             <Input placeholder="Admin Name *" value={formData.adminName} onChange={e => setFormData(p => ({ ...p, adminName: e.target.value }))} />

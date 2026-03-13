@@ -8,6 +8,7 @@ export interface StoreInfo {
   category: string;
   location: string;
   address: string;
+  state: string;
   hero_image: string;
   icon: string;
   badge: string;
@@ -57,7 +58,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!storeId) { setStore(null); return; }
     const { data } = await supabase.from('stores').select('*').eq('id', storeId).maybeSingle();
     if (data) {
-      setStore(data as unknown as StoreInfo);
+      setStore({
+        id: data.id,
+        name: data.name,
+        tagline: data.tagline || '',
+        category: data.category || '',
+        location: data.location || '',
+        address: data.address || '',
+        state: (data as any).state || '',
+        hero_image: data.hero_image || '',
+        icon: data.icon || '🏪',
+        badge: data.badge || '',
+        color: data.color || '',
+        admin_user_id: data.admin_user_id,
+        secret_key: data.secret_key,
+      });
     }
   };
 
@@ -70,8 +85,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         store_id: c.store_id,
         category_id: c.category_id,
         label: c.label,
-        image: c.image,
-        sort_order: c.sort_order,
+        image: c.image || '',
+        sort_order: c.sort_order || 0,
       })));
     }
   };
@@ -89,6 +104,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (updates.address !== undefined) dbUpdates.address = updates.address;
     if (updates.hero_image !== undefined) dbUpdates.hero_image = updates.hero_image;
     if (updates.location !== undefined) dbUpdates.location = updates.location;
+    if (updates.state !== undefined) dbUpdates.state = updates.state;
 
     await supabase.from('stores').update(dbUpdates).eq('id', storeId);
     setStore(prev => prev ? { ...prev, ...updates } : null);
@@ -108,8 +124,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         store_id: data.store_id,
         category_id: data.category_id,
         label: data.label,
-        image: data.image,
-        sort_order: data.sort_order,
+        image: data.image || '',
+        sort_order: data.sort_order || 0,
       }]);
     }
   };
@@ -119,6 +135,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (updates.label !== undefined) dbUpdates.label = updates.label;
     if (updates.image !== undefined) dbUpdates.image = updates.image;
     if (updates.sort_order !== undefined) dbUpdates.sort_order = updates.sort_order;
+    if (updates.category_id !== undefined) dbUpdates.category_id = updates.category_id;
     await supabase.from('store_categories').update(dbUpdates).eq('id', categoryId);
     setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, ...updates } : c));
   };
