@@ -4,17 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string, role?: 'customer' | 'admin') => Promise<boolean>;
+  login: (email: string, password: string, storeId?: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string, role?: 'customer' | 'admin', storeId?: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const ADMIN_EMAIL = 'omkarsaicharan@gmail.com';
-const ADMIN_PASSWORD = 'omkar@2004';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
@@ -27,28 +24,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     else localStorage.removeItem('omnistore-session');
   }, [user]);
 
-  // Seed admin user in cloud DB
-  useEffect(() => {
-    const seedAdmin = async () => {
-      const { data } = await supabase.from('profiles').select('user_id').eq('email', ADMIN_EMAIL).maybeSingle();
-      if (!data) {
-        await supabase.from('profiles').insert({
-          user_id: 'admin-1',
-          name: 'Admin',
-          email: ADMIN_EMAIL,
-          role: 'admin',
-        });
-      }
-    };
-    seedAdmin();
-  }, []);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Check localStorage for password (since we store passwords locally for this simple auth)
+  const login = async (email: string, password: string, storeId?: string): Promise<boolean> => {
     const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
+    // Match by email + password, optionally filter by storeId
     const found = users.find(u => u.email === email && u.password === password);
     if (found) {
-      // Also ensure profile exists in cloud
       const { data: profile } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
       if (profile) {
         found.registeredAt = profile.registered_at;
@@ -59,29 +39,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
-  const register = async (name: string, email: string, password: string, role: 'customer' | 'admin' = 'customer'): Promise<boolean> => {
+  const register = async (name: string, email: string, password: string, role: 'customer' | 'admin' = 'customer', storeId?: string): Promise<boolean> => {
     const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
-    if (users.find(u => u.email === email)) return false;
-
-    // Also check cloud
-    const { data: existing } = await supabase.from('profiles').select('user_id').eq('email', email).maybeSingle();
+    // Allow same email in different stores
+    const existing = users.find(u => u.email === email);
     if (existing) return false;
 
     const userId = `user-${Date.now()}`;
     const now = new Date().toISOString();
     const newUser: User = { id: userId, name, email, password, role, registeredAt: now };
 
-    // Save to localStorage (for password-based login)
     users.push(newUser);
     localStorage.setItem('omnistore-users', JSON.stringify(users));
 
-    // Save profile to cloud DB
     await supabase.from('profiles').insert({
       user_id: userId,
       name,
       email,
       role,
-    });
+      store_id: storeId || '',
+    } as any);
 
     setUser(newUser);
     return true;
@@ -97,7 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const idx = users.findIndex(u => u.id === user.id);
     if (idx !== -1) { users[idx] = updated; localStorage.setItem('omnistore-users', JSON.stringify(users)); }
 
-    // Update cloud profile
     const dbUpdates: Record<string, unknown> = {};
     if (updates.name) dbUpdates.name = updates.name;
     if (updates.email) dbUpdates.email = updates.email;

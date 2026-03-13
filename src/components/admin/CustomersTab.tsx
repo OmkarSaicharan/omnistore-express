@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Order } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { useStore } from '@/contexts/StoreContext';
 import { motion } from 'framer-motion';
 import { Users, ShoppingCart, Package, Clock, RefreshCw } from 'lucide-react';
 import {
@@ -23,19 +24,20 @@ interface CartStorageItem {
 }
 
 export function CustomersTab() {
+  const { storeId } = useStore();
   const [users, setUsers] = useState<Profile[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [carts, setCarts] = useState<Record<string, CartStorageItem[]>>({});
 
   const loadData = useCallback(async () => {
-    // Fetch profiles from cloud
-    const { data: profiles } = await supabase.from('profiles').select('*');
+    // Fetch profiles for this store only (customers)
+    const { data: profiles } = await supabase.from('profiles').select('*').eq('store_id', storeId);
     if (profiles) {
       setUsers(profiles.filter(p => p.role !== 'admin'));
     }
 
-    // Fetch all orders from cloud
-    const { data: cloudOrders } = await supabase.from('orders').select('*');
+    // Fetch orders for this store
+    const { data: cloudOrders } = await supabase.from('orders').select('*').eq('store_id', storeId);
     if (cloudOrders) {
       setOrders(cloudOrders.map(o => ({
         id: o.id,
@@ -48,7 +50,6 @@ export function CustomersTab() {
       })));
     }
 
-    // Cart is still localStorage (per-session)
     const activeCart: CartStorageItem[] = JSON.parse(localStorage.getItem('omnistore-cart') || '[]');
     const session = JSON.parse(localStorage.getItem('omnistore-session') || 'null');
     const cartMap: Record<string, CartStorageItem[]> = {};
@@ -56,7 +57,7 @@ export function CustomersTab() {
       cartMap[session.id] = activeCart;
     }
     setCarts(cartMap);
-  }, []);
+  }, [storeId]);
 
   useEffect(() => {
     loadData();
@@ -130,9 +131,7 @@ export function CustomersTab() {
                       <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
                         <Package className="h-4 w-4" /> Orders ({userOrders.length})
                         {totalSpent > 0 && (
-                          <span className="text-muted-foreground font-normal ml-auto text-xs">
-                            Total: ₹{totalSpent}
-                          </span>
+                          <span className="text-muted-foreground font-normal ml-auto text-xs">Total: ₹{totalSpent}</span>
                         )}
                       </h4>
                       {userOrders.length === 0 ? (

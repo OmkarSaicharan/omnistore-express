@@ -32,7 +32,7 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (await register(name, email, password)) {
+    if (await register(name, email, password, 'customer', storeId)) {
       navigate(`${base}/profile`);
     } else {
       setError(t('auth.registerError'));
@@ -54,7 +54,7 @@ export default function Register() {
       return;
     }
 
-    const success = await register(adminName, adminEmail, adminPassword, 'admin');
+    const success = await register(adminName, adminEmail, adminPassword, 'admin', storeId);
     if (success) {
       navigate(`${base}/admin`);
     } else {

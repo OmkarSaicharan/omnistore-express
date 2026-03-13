@@ -93,6 +93,7 @@ export type Database = {
           name: string
           registered_at: string
           role: string
+          store_id: string | null
           user_id: string
         }
         Insert: {
@@ -101,6 +102,7 @@ export type Database = {
           name: string
           registered_at?: string
           role?: string
+          store_id?: string | null
           user_id: string
         }
         Update: {
@@ -109,6 +111,7 @@ export type Database = {
           name?: string
           registered_at?: string
           role?: string
+          store_id?: string | null
           user_id?: string
         }
         Relationships: []
@@ -154,6 +157,7 @@ export type Database = {
           location: string | null
           name: string
           secret_key: string
+          state: string | null
           tagline: string | null
         }
         Insert: {
@@ -169,6 +173,7 @@ export type Database = {
           location?: string | null
           name: string
           secret_key: string
+          state?: string | null
           tagline?: string | null
         }
         Update: {
@@ -184,6 +189,7 @@ export type Database = {
           location?: string | null
           name?: string
           secret_key?: string
+          state?: string | null
           tagline?: string | null
         }
         Relationships: []

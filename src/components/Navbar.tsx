@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, User, LogOut, Shield, Home, Grid3X3, Store, Info, Phone } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Menu, User, LogOut, Shield, Home, Grid3X3, Store, Info, Phone, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
@@ -17,6 +17,7 @@ export function Navbar() {
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const base = `/store/${storeId}`;
   const storeName = store?.name || t('app.name');
@@ -45,6 +46,10 @@ export function Navbar() {
               <SheetContent side="left" className="w-72 bg-card">
                 <div className="mt-8 flex flex-col gap-1">
                   <Link to={`${base}/home`} className="text-xl font-bold text-primary mb-6">{storeName}</Link>
+                  <button onClick={() => { navigate('/'); setMobileOpen(false); }}
+                    className="px-4 py-3 rounded-lg font-medium flex items-center gap-3 text-foreground/70 hover:bg-muted transition-colors">
+                    <ArrowLeft className="h-4 w-4" /> Back to Stores
+                  </button>
                   {navLinks.map(link => (
                     <Link key={link.to} to={link.to} onClick={() => setMobileOpen(false)}
                       className={`px-4 py-3 rounded-lg font-medium flex items-center gap-3 transition-colors ${isActive(link.to) ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:bg-muted'}`}>
@@ -79,6 +84,10 @@ export function Navbar() {
                 </div>
               </SheetContent>
             </Sheet>
+            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden md:flex items-center gap-1">
+              <ArrowLeft className="h-3.5 w-3.5" /> Stores
+            </Link>
+            <span className="hidden md:inline text-border/60">|</span>
             <Link to={`${base}/home`} className="text-lg sm:text-xl font-bold text-primary">
               {storeName}
             </Link>
