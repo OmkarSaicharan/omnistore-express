@@ -54,7 +54,7 @@ export default function Register() {
       return;
     }
 
-    const success = await register(adminName, adminEmail, adminPassword, 'admin');
+    const success = await register(adminName, adminEmail, adminPassword, 'admin', storeId);
     if (success) {
       navigate(`${base}/admin`);
     } else {
