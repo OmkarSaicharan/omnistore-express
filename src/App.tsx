@@ -38,6 +38,7 @@ const App = () => {
                 <BrowserRouter>
                   <Routes>
                     <Route path="/" element={<StoreSearch />} />
+                    <Route path="/master-admin" element={<MasterAdmin />} />
                     <Route path="/store/:storeId" element={<StoreLayout />}>
                       <Route path="home" element={<Index />} />
                       <Route path="shop" element={<Shop />} />
