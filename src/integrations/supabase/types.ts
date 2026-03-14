@@ -143,6 +143,51 @@ export type Database = {
         }
         Relationships: []
       }
+      store_requests: {
+        Row: {
+          admin_email: string
+          admin_name: string
+          admin_password: string
+          category: string | null
+          created_at: string | null
+          id: string
+          location: string | null
+          reviewed_at: string | null
+          state: string | null
+          status: string
+          store_name: string
+          tagline: string | null
+        }
+        Insert: {
+          admin_email: string
+          admin_name: string
+          admin_password: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          reviewed_at?: string | null
+          state?: string | null
+          status?: string
+          store_name: string
+          tagline?: string | null
+        }
+        Update: {
+          admin_email?: string
+          admin_name?: string
+          admin_password?: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          reviewed_at?: string | null
+          state?: string | null
+          status?: string
+          store_name?: string
+          tagline?: string | null
+        }
+        Relationships: []
+      }
       stores: {
         Row: {
           address: string | null

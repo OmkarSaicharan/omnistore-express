@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Store, MapPin, Star, ArrowRight, Plus, ShoppingCart } from 'lucide-react';
+import { Search, Store, MapPin, Star, ArrowRight, Plus, ShoppingCart, KeyRound } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface StoreItem {
   id: string;
@@ -16,27 +16,27 @@ interface StoreItem {
   rating: number;
   location: string;
   badge?: string;
-  color: string;
-  icon: string;
-}
-
-function generateSecretKey() {
-  return 'SK-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
 }
 
 export default function StoreSearch() {
   const navigate = useNavigate();
-  const { register } = useAuth();
   const [search, setSearch] = useState('');
-  const [showRegister, setShowRegister] = useState(false);
   const [stores, setStores] = useState<StoreItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Register dialog
+  const [showRegister, setShowRegister] = useState(false);
   const [formData, setFormData] = useState({
     storeName: '', tagline: '', category: '', location: '', state: '',
     adminName: '', email: '', password: '',
   });
-  const [registering, setRegistering] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Secret key dialog
+  const [showKeyDialog, setShowKeyDialog] = useState(false);
+  const [secretInput, setSecretInput] = useState('');
+  const [keyError, setKeyError] = useState('');
 
   const fetchStores = async () => {
     const { data } = await supabase.from('stores').select('*');
@@ -49,8 +49,6 @@ export default function StoreSearch() {
         rating: 4.8,
         location: s.location || '',
         badge: s.badge || undefined,
-        color: s.color || 'from-primary/20 to-primary/5',
-        icon: s.icon || '🏪',
       })));
     }
     setLoading(false);
@@ -69,45 +67,45 @@ export default function StoreSearch() {
     navigate(`/store/${storeId}/home`);
   };
 
-  const handleRegisterStore = async () => {
+  const handleSubmitRequest = async () => {
     setError('');
-    const { storeName, tagline, category, location, state, adminName, email, password } = formData;
+    const { storeName, category, adminName, email, password } = formData;
     if (!storeName || !category || !adminName || !email || !password) {
       setError('Please fill all required fields');
       return;
     }
-    setRegistering(true);
+    setSubmitting(true);
     try {
-      const secretKey = generateSecretKey();
-      const storeId = 'store-' + Date.now();
-      const userId = `user-${Date.now()}`;
-
-      await register(adminName, email, password, 'admin', storeId);
-
-      await supabase.from('stores').insert({
-        id: storeId,
-        name: storeName,
-        tagline: tagline || `Welcome to ${storeName}`,
-        category,
-        location: location || 'Online',
-        address: location || '',
-        hero_image: '',
-        icon: '🏪',
-        badge: '',
-        color: 'from-primary/20 to-primary/5',
-        admin_user_id: userId,
-        secret_key: secretKey,
-        state: state || '',
+      await supabase.from('store_requests').insert({
+        store_name: formData.storeName,
+        tagline: formData.tagline,
+        category: formData.category,
+        location: formData.location,
+        state: formData.state,
+        admin_name: formData.adminName,
+        admin_email: formData.email,
+        admin_password: formData.password,
+        status: 'pending',
       } as any);
 
       setShowRegister(false);
       setFormData({ storeName: '', tagline: '', category: '', location: '', state: '', adminName: '', email: '', password: '' });
-      alert(`Store registered! Your admin secret key is: ${secretKey}\nSave it securely.`);
-      fetchStores();
+      toast({ title: 'Request Sent', description: 'Your store registration request has been sent to the admin for approval.' });
     } catch {
-      setError('Registration failed. Try again.');
+      setError('Failed to submit request. Try again.');
     } finally {
-      setRegistering(false);
+      setSubmitting(false);
+    }
+  };
+
+  const handleKeySubmit = () => {
+    if (secretInput === 'omkar@2004') {
+      setShowKeyDialog(false);
+      setSecretInput('');
+      setKeyError('');
+      navigate('/master-admin');
+    } else {
+      setKeyError('Invalid Admin Key');
     }
   };
 
@@ -119,10 +117,21 @@ export default function StoreSearch() {
             <Store className="h-5 w-5 text-primary" />
             <span className="font-bold text-primary">OmniStore</span>
           </div>
-          <Button size="sm" onClick={() => setShowRegister(true)} className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            Register Store
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-muted-foreground/50 hover:text-muted-foreground"
+              onClick={() => setShowKeyDialog(true)}
+              title="Admin"
+            >
+              <KeyRound className="h-4 w-4" />
+            </Button>
+            <Button size="sm" onClick={() => setShowRegister(true)} className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Register Store
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -148,7 +157,6 @@ export default function StoreSearch() {
           </p>
         </div>
 
-        {/* Store cards - all with same cart icon style */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((store, i) => (
             <motion.div
@@ -156,10 +164,11 @@ export default function StoreSearch() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="bg-card rounded-xl overflow-hidden group hover:shadow-lg transition-all duration-300 border border-border/50"
+              onClick={() => handleEnterStore(store.id)}
+              className="bg-card rounded-xl overflow-hidden group hover:shadow-lg transition-all duration-300 border border-border/50 cursor-pointer"
             >
-              <div className={`h-28 bg-gradient-to-br ${store.color} flex items-center justify-center relative`}>
-                <ShoppingCart className="h-16 w-16 text-muted-foreground/40" />
+              <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
+                <ShoppingCart className="h-16 w-16 text-primary/30" />
                 {store.badge && (
                   <span className="absolute top-3 right-3 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
                     {store.badge}
@@ -181,7 +190,7 @@ export default function StoreSearch() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">{store.category}</span>
-                  <Button size="sm" className="gap-1.5 group-hover:gap-2.5 transition-all" onClick={() => handleEnterStore(store.id)}>
+                  <Button size="sm" className="gap-1.5 group-hover:gap-2.5 transition-all pointer-events-none">
                     Enter Store
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
@@ -205,7 +214,7 @@ export default function StoreSearch() {
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Register Your Store</DialogTitle>
-            <DialogDescription>Create a new store and admin account</DialogDescription>
+            <DialogDescription>Submit a request to create your store. It will be reviewed by the platform admin.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <Input placeholder="Store Name *" value={formData.storeName} onChange={e => setFormData(p => ({ ...p, storeName: e.target.value }))} />
@@ -219,9 +228,30 @@ export default function StoreSearch() {
             <Input placeholder="Email *" type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} />
             <Input placeholder="Password *" type="password" value={formData.password} onChange={e => setFormData(p => ({ ...p, password: e.target.value }))} />
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button className="w-full" onClick={handleRegisterStore} disabled={registering}>
-              {registering ? 'Registering...' : 'Register Store'}
+            <Button className="w-full" onClick={handleSubmitRequest} disabled={submitting}>
+              {submitting ? 'Submitting...' : 'Submit Registration Request'}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Secret Key Dialog */}
+      <Dialog open={showKeyDialog} onOpenChange={v => { setShowKeyDialog(v); setKeyError(''); setSecretInput(''); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Master Admin Access</DialogTitle>
+            <DialogDescription>Enter the secret admin key to continue.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <Input
+              placeholder="Enter Secret Key"
+              type="password"
+              value={secretInput}
+              onChange={e => { setSecretInput(e.target.value); setKeyError(''); }}
+              onKeyDown={e => e.key === 'Enter' && handleKeySubmit()}
+            />
+            {keyError && <p className="text-sm text-destructive">{keyError}</p>}
+            <Button className="w-full" onClick={handleKeySubmit}>Submit</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -20,6 +20,7 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import MasterAdmin from "./pages/MasterAdmin";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => {
                 <BrowserRouter>
                   <Routes>
                     <Route path="/" element={<StoreSearch />} />
+                    <Route path="/master-admin" element={<MasterAdmin />} />
                     <Route path="/store/:storeId" element={<StoreLayout />}>
                       <Route path="home" element={<Index />} />
                       <Route path="shop" element={<Shop />} />
