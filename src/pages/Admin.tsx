@@ -41,13 +41,10 @@ export default function Admin() {
   const [storeAddress, setStoreAddress] = useState(store?.address || '');
   const [storeHeroImage, setStoreHeroImage] = useState(store?.hero_image || '');
   const [storeTagline, setStoreTagline] = useState(store?.tagline || '');
-
-  if (!isAdmin) return <Navigate to={`/store/${storeId}/login`} replace />;
-
   const [storeOrders, setStoreOrders] = useState<Order[]>([]);
 
   // Fetch orders from DB for this store
-  useState(() => {
+  useEffect(() => {
     const fetchOrders = async () => {
       if (!storeId) return;
       const { data } = await supabase.from('orders').select('*').eq('store_id', storeId);
@@ -60,7 +57,9 @@ export default function Admin() {
       }
     };
     fetchOrders();
-  });
+  }, [storeId]);
+
+  if (!isAdmin) return <Navigate to={`/store/${storeId}/login`} replace />;
 
   const weeklyRevenue = storeOrders.reduce((sum, o) => sum + o.total, 0);
   const totalInventoryValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
