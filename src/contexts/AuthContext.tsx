@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const userId = `user-${Date.now()}`;
     const now = new Date().toISOString();
-    const newUser: User = { id: userId, name, email, password, role, registeredAt: now };
+    const newUser: User = { id: userId, name, email, password, role, registeredAt: now, storeId };
 
     users.push(newUser);
     localStorage.setItem('omnistore-users', JSON.stringify(users));
