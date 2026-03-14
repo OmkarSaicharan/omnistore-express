@@ -43,8 +43,25 @@ export default function Admin() {
 
   if (!isAdmin) return <Navigate to={`/store/${storeId}/login`} replace />;
 
-  const orders: Order[] = JSON.parse(localStorage.getItem('omnistore-orders') || '[]');
-  const weeklyRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+  const [storeOrders, setStoreOrders] = useState<Order[]>([]);
+
+  // Fetch orders from DB for this store
+  useState(() => {
+    const fetchOrders = async () => {
+      if (!storeId) return;
+      const { data } = await supabase.from('orders').select('*').eq('store_id', storeId);
+      if (data) {
+        setStoreOrders(data.map(o => ({
+          id: o.id, userId: o.user_id,
+          items: o.items as { productName: string; quantity: number; price: number }[],
+          total: Number(o.total), date: o.date, orderedAt: o.ordered_at, status: o.status,
+        })));
+      }
+    };
+    fetchOrders();
+  });
+
+  const weeklyRevenue = storeOrders.reduce((sum, o) => sum + o.total, 0);
   const totalInventoryValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
   const lowStockItems = products.filter(p => p.maxStock > 0 && (p.stock / p.maxStock) * 100 <= 15);
 

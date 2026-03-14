@@ -22,7 +22,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (await login(email, password)) {
+    if (await login(email, password, storeId)) {
       navigate(`${base}/profile`);
     } else {
       setError(t('auth.loginError'));
