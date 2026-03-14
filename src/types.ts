@@ -18,6 +18,7 @@ export interface User {
   password: string;
   role: 'customer' | 'admin';
   registeredAt?: string;
+  storeId?: string;
 }
 
 export interface CartItem {

@@ -26,10 +26,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string, storeId?: string): Promise<boolean> => {
     const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
-    // Match by email + password, optionally filter by storeId
-    const found = users.find(u => u.email === email && u.password === password);
+    // Match by email + password AND storeId for strict store isolation
+    const found = users.find(u => u.email === email && u.password === password && (!storeId || u.storeId === storeId));
     if (found) {
-      const { data: profile } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
+      const { data: profile } = await supabase.from('profiles').select('*').eq('email', email).eq('store_id', storeId || '').maybeSingle();
       if (profile) {
         found.registeredAt = profile.registered_at;
       }
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const userId = `user-${Date.now()}`;
     const now = new Date().toISOString();
-    const newUser: User = { id: userId, name, email, password, role, registeredAt: now };
+    const newUser: User = { id: userId, name, email, password, role, registeredAt: now, storeId };
 
     users.push(newUser);
     localStorage.setItem('omnistore-users', JSON.stringify(users));
