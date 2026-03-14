@@ -20,6 +20,7 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import MasterAdmin from "./pages/MasterAdmin";
 
 const queryClient = new QueryClient();
 
