@@ -168,7 +168,7 @@ export default function Admin() {
           className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6">{t('admin.title')}</motion.h1>
 
         <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto scrollbar-hide">
-          {(['dashboard', 'products', 'customers', 'settings'] as const).map(t2 => (
+          {(['dashboard', 'orders', 'products', 'customers', 'credit', 'settings'] as const).map(t2 => (
             <button key={t2} onClick={() => {
               setTab(t2);
               if (t2 === 'settings' && store) {
@@ -179,7 +179,7 @@ export default function Admin() {
               }
             }}
               className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${tab === t2 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-muted'}`}>
-              {t2 === 'settings' ? 'Store Settings' : t(`admin.${t2}`)}
+              {t2 === 'settings' ? 'Store Settings' : t2 === 'orders' ? 'Orders' : t2 === 'credit' ? 'Credit Requests' : t(`admin.${t2}`)}
             </button>
           ))}
         </div>
