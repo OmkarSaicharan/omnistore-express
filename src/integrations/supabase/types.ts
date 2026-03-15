@@ -14,32 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      credit_requests: {
+        Row: {
+          created_at: string | null
+          customer_email: string
+          customer_name: string
+          customer_user_id: string
+          id: string
+          reviewed_at: string | null
+          status: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_email?: string
+          customer_name?: string
+          customer_user_id: string
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_email?: string
+          customer_name?: string
+          customer_user_id?: string
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          store_id?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
+          customer_unique_id: string | null
           date: string
           id: string
           items: Json
           ordered_at: string
+          payment_method: string
+          payment_status: string
+          pickup_date: string | null
+          pickup_time: string | null
           status: string
           store_id: string
           total: number
           user_id: string
         }
         Insert: {
+          customer_unique_id?: string | null
           date: string
           id: string
           items?: Json
           ordered_at?: string
+          payment_method?: string
+          payment_status?: string
+          pickup_date?: string | null
+          pickup_time?: string | null
           status?: string
           store_id?: string
           total?: number
           user_id: string
         }
         Update: {
+          customer_unique_id?: string | null
           date?: string
           id?: string
           items?: Json
           ordered_at?: string
+          payment_method?: string
+          payment_status?: string
+          pickup_date?: string | null
+          pickup_time?: string | null
           status?: string
           store_id?: string
           total?: number
@@ -88,6 +136,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          customer_unique_id: string | null
           email: string
           id: string
           name: string
@@ -97,6 +146,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          customer_unique_id?: string | null
           email: string
           id?: string
           name: string
@@ -106,6 +156,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          customer_unique_id?: string | null
           email?: string
           id?: string
           name?: string
