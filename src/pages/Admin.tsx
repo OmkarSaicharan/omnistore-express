@@ -31,7 +31,7 @@ export default function Admin() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editForm, setEditForm] = useState(emptyForm);
   const [isAdding, setIsAdding] = useState(false);
-  const [tab, setTab] = useState<'dashboard' | 'products' | 'customers' | 'settings'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'orders' | 'products' | 'customers' | 'credit' | 'settings'>('dashboard');
 
   // Add/Edit category dialog
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
