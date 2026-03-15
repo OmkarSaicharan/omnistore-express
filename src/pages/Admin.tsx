@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
-import { BarChart3, Package, AlertTriangle, DollarSign, Plus, Settings, MapPin, Image, Pencil } from 'lucide-react';
+import { BarChart3, Package, AlertTriangle, DollarSign, Plus, Settings, MapPin, Image, Pencil, ShoppingCart, CreditCard } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
