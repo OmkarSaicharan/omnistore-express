@@ -197,11 +197,15 @@ export default function Admin() {
           </div>
         )}
 
+        {tab === 'orders' && <OrdersTab />}
+
         {tab === 'products' && (
           <AdminProductsTab onEdit={openEdit} onDelete={handleDelete} onAdd={openAdd} onAddCategory={openAddCategory} />
         )}
 
         {tab === 'customers' && <CustomersTab />}
+
+        {tab === 'credit' && <CreditRequestsTab />}
 
         {tab === 'settings' && (
           <div className="max-w-2xl space-y-6">
