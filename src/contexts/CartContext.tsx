@@ -13,9 +13,10 @@ interface CartContextType {
   clearCart: () => void;
   total: number;
   itemCount: number;
-  checkout: () => Promise<Order | null>;
-  buyNow: (product: Product) => Promise<Order | null>;
+  checkout: (paymentMethod?: string, paymentStatus?: string, pickupDate?: string, pickupTime?: string) => Promise<Order | null>;
+  buyNow: (product: Product, paymentMethod?: string, paymentStatus?: string, pickupDate?: string, pickupTime?: string) => Promise<Order | null>;
   orders: Order[];
+  refreshOrders: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -30,34 +31,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
   const [orders, setOrders] = useState<Order[]>([]);
 
-  // Clear cart when store changes
-  useEffect(() => {
-    setItems([]);
-  }, [storeId]);
+  useEffect(() => { setItems([]); }, [storeId]);
 
   useEffect(() => {
     localStorage.setItem('omnistore-cart', JSON.stringify(items));
   }, [items]);
 
-  // Fetch orders from cloud
-  useEffect(() => {
+  const fetchOrders = async () => {
     if (!user || !storeId) { setOrders([]); return; }
-    const fetchOrders = async () => {
-      const { data } = await supabase.from('orders').select('*').eq('user_id', user.id).eq('store_id', storeId);
-      if (data) {
-        setOrders(data.map(o => ({
-          id: o.id,
-          userId: o.user_id,
-          items: o.items as { productName: string; quantity: number; price: number }[],
-          total: Number(o.total),
-          date: o.date,
-          orderedAt: o.ordered_at,
-          status: o.status,
-        })));
-      }
-    };
-    fetchOrders();
-  }, [user, storeId]);
+    const { data } = await supabase.from('orders').select('*').eq('user_id', user.id).eq('store_id', storeId).order('ordered_at', { ascending: false });
+    if (data) {
+      setOrders(data.map(o => ({
+        id: o.id,
+        userId: o.user_id,
+        items: o.items as { productName: string; quantity: number; price: number }[],
+        total: Number(o.total),
+        date: o.date,
+        orderedAt: o.ordered_at,
+        status: o.status,
+        paymentMethod: (o as any).payment_method || 'cash_on_grab',
+        paymentStatus: (o as any).payment_status || 'pending',
+        pickupDate: (o as any).pickup_date || '',
+        pickupTime: (o as any).pickup_time || '',
+        customerUniqueId: (o as any).customer_unique_id || '',
+      })));
+    }
+  };
+
+  useEffect(() => { fetchOrders(); }, [user, storeId]);
 
   const addToCart = (product: Product) => {
     setItems(prev => {
@@ -84,9 +85,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const total = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
-  const checkout = async (): Promise<Order | null> => {
+  const generateCustomerUniqueId = (userId: string) => {
+    return `CUS-${userId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8).toUpperCase()}`;
+  };
+
+  const checkout = async (paymentMethod = 'cash_on_grab', paymentStatus = 'pending', pickupDate = '', pickupTime = ''): Promise<Order | null> => {
     if (!user || items.length === 0 || !storeId) return null;
     const now = new Date().toISOString();
+    const custId = generateCustomerUniqueId(user.id);
     const order: Order = {
       id: `ORD-${Math.floor(Math.random() * 10000)}`,
       userId: user.id,
@@ -94,7 +100,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       total,
       date: new Date().toLocaleDateString(),
       orderedAt: now,
-      status: 'Completed',
+      status: 'Pending',
+      paymentMethod,
+      paymentStatus,
+      pickupDate,
+      pickupTime,
+      customerUniqueId: custId,
     };
 
     await supabase.from('orders').insert({
@@ -106,7 +117,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ordered_at: now,
       status: order.status,
       store_id: storeId,
-    });
+      payment_method: paymentMethod,
+      payment_status: paymentStatus,
+      pickup_date: pickupDate,
+      pickup_time: pickupTime,
+      customer_unique_id: custId,
+    } as any);
+
+    // Update customer_unique_id on profile if not set
+    await supabase.from('profiles').update({ customer_unique_id: custId } as any).eq('user_id', user.id);
 
     for (const item of items) {
       const current = products.find(p => p.id === item.product.id);
@@ -115,14 +134,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    setOrders(prev => [...prev, order]);
+    setOrders(prev => [order, ...prev]);
     clearCart();
     return order;
   };
 
-  const buyNow = async (product: Product): Promise<Order | null> => {
+  const buyNow = async (product: Product, paymentMethod = 'cash_on_grab', paymentStatus = 'pending', pickupDate = '', pickupTime = ''): Promise<Order | null> => {
     if (!user || product.stock <= 0 || !storeId) return null;
     const now = new Date().toISOString();
+    const custId = generateCustomerUniqueId(user.id);
     const order: Order = {
       id: `ORD-${Math.floor(Math.random() * 10000)}`,
       userId: user.id,
@@ -130,7 +150,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       total: product.price,
       date: new Date().toLocaleDateString(),
       orderedAt: now,
-      status: 'Completed',
+      status: 'Pending',
+      paymentMethod,
+      paymentStatus,
+      pickupDate,
+      pickupTime,
+      customerUniqueId: custId,
     };
 
     await supabase.from('orders').insert({
@@ -142,19 +167,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ordered_at: now,
       status: order.status,
       store_id: storeId,
-    });
+      payment_method: paymentMethod,
+      payment_status: paymentStatus,
+      pickup_date: pickupDate,
+      pickup_time: pickupTime,
+      customer_unique_id: custId,
+    } as any);
 
     const current = products.find(p => p.id === product.id);
     if (current) {
       updateProduct(product.id, { stock: Math.max(0, current.stock - 1) });
     }
 
-    setOrders(prev => [...prev, order]);
+    setOrders(prev => [order, ...prev]);
     return order;
   };
 
   return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, total, itemCount, checkout, buyNow, orders }}>
+    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, total, itemCount, checkout, buyNow, orders, refreshOrders: fetchOrders }}>
       {children}
     </CartContext.Provider>
   );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -9,8 +9,9 @@ import { useStore } from '@/contexts/StoreContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { User, Package, Globe, LogOut, Shield, Key, MapPin } from 'lucide-react';
-import { Language } from '@/types';
+import { User, Package, Globe, LogOut, Shield, Key, MapPin, CreditCard, Calendar, Clock, Hash } from 'lucide-react';
+import { Language, PAYMENT_METHOD_LABELS, ORDER_STATUS_COLORS } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 const LANGUAGES: { code: Language; label: string }[] = [
   { code: 'en', label: 'English' },
@@ -22,7 +23,7 @@ const LANGUAGES: { code: Language; label: string }[] = [
 export default function Profile() {
   const { t, language, setLanguage } = useLanguage();
   const { user, updateUser, logout, isAdmin } = useAuth();
-  const { orders } = useCart();
+  const { orders, refreshOrders } = useCart();
   const { storeId, store, updateStore } = useStore();
   const navigate = useNavigate();
   const [editName, setEditName] = useState(user?.name || '');
@@ -31,6 +32,24 @@ export default function Profile() {
   const [editingStore, setEditingStore] = useState(false);
   const [editAddress, setEditAddress] = useState('');
   const [editingAddress, setEditingAddress] = useState(false);
+  const [customerUniqueId, setCustomerUniqueId] = useState('');
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchId = async () => {
+      const { data } = await supabase.from('profiles').select('customer_unique_id').eq('user_id', user.id).maybeSingle();
+      if (data && (data as any).customer_unique_id) {
+        setCustomerUniqueId((data as any).customer_unique_id);
+      } else {
+        const genId = `CUS-${user.id.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8).toUpperCase()}`;
+        setCustomerUniqueId(genId);
+        await supabase.from('profiles').update({ customer_unique_id: genId } as any).eq('user_id', user.id);
+      }
+    };
+    fetchId();
+  }, [user]);
+
+  useEffect(() => { refreshOrders(); }, []);
 
   if (!user) return <Navigate to={`/store/${storeId}/login`} replace />;
 
@@ -74,6 +93,11 @@ export default function Profile() {
             <div>
               <h2 className="font-bold text-lg">{user.name}</h2>
               <p className="text-sm text-muted-foreground">{user.email}</p>
+              {customerUniqueId && (
+                <p className="text-xs text-primary font-mono flex items-center gap-1 mt-1">
+                  <Hash className="h-3 w-3" /> {customerUniqueId}
+                </p>
+              )}
             </div>
           </div>
           {editing ? (
@@ -97,7 +121,6 @@ export default function Profile() {
               <h2 className="font-bold">Admin Settings</h2>
             </div>
             <div className="space-y-4">
-              {/* Store Name */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Store Name</p>
                 {editingStore ? (
@@ -114,7 +137,6 @@ export default function Profile() {
                 )}
               </div>
 
-              {/* Store Address */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
                   <MapPin className="h-3 w-3" /> Store Address
@@ -133,7 +155,6 @@ export default function Profile() {
                 )}
               </div>
 
-              {/* Secret Key */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
                   <Key className="h-3 w-3" /> Admin Secret Key
@@ -171,17 +192,34 @@ export default function Profile() {
           ) : (
             <div className="space-y-3">
               {orders.map(order => (
-                <div key={order.id} className="p-4 rounded-lg bg-secondary/50">
-                  <div className="flex justify-between items-center mb-1">
+                <div key={order.id} className="p-4 rounded-lg bg-secondary/50 space-y-2">
+                  <div className="flex justify-between items-start">
                     <span className="font-semibold text-sm">{order.id}</span>
-                    <span className="text-xs text-muted-foreground">{order.date}</span>
+                    <div className="text-right">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ORDER_STATUS_COLORS[order.status] || 'bg-secondary text-secondary-foreground'}`}>
+                        {order.status}
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-1">{order.date}</p>
+                    </div>
                   </div>
                   {order.items.map((item, i) => (
                     <p key={i} className="text-sm text-muted-foreground">
                       {item.quantity}x {item.productName} — {t('currency')}{item.price}
                     </p>
                   ))}
-                  <p className="text-sm font-bold text-primary mt-1">{t('cart.total')}: {t('currency')}{order.total}</p>
+                  <div className="flex flex-wrap gap-3 text-xs pt-1">
+                    <span className="flex items-center gap-1">
+                      <CreditCard className="h-3 w-3 text-primary" />
+                      {PAYMENT_METHOD_LABELS[order.paymentMethod || 'cash_on_grab']}
+                    </span>
+                    {(order.pickupDate || order.pickupTime) && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-primary" />
+                        {order.pickupDate} <Clock className="h-3 w-3 ml-1" /> {order.pickupTime}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-bold text-primary">{t('cart.total')}: {t('currency')}{order.total}</p>
                 </div>
               ))}
             </div>
