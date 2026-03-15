@@ -17,6 +17,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CustomersTab } from '@/components/admin/CustomersTab';
 import { AdminProductsTab } from '@/components/admin/AdminProductsTab';
+import { OrdersTab } from '@/components/admin/OrdersTab';
+import { CreditRequestsTab } from '@/components/admin/CreditRequestsTab';
 
 const emptyForm = { name: '', price: 0, stock: 0, maxStock: 100, image: '', category: '', description: '' };
 const emptyCategoryForm = { id: '', label: '', image: '' };
