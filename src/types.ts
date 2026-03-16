@@ -15,7 +15,8 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string;
+  password?: string;
+  phone?: string;
   role: 'customer' | 'admin';
   registeredAt?: string;
   storeId?: string;
@@ -39,6 +40,8 @@ export interface Order {
   pickupDate?: string;
   pickupTime?: string;
   customerUniqueId?: string;
+  customerName?: string;
+  creditLedgerFlag?: boolean;
 }
 
 export type PaymentMethod = 'cash_on_grab' | 'credit_ledger' | 'online';
