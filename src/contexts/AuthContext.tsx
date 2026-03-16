@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -13,71 +13,138 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const mapProfileToUser = (authUser: { id: string; email?: string | null }, profile?: any): User => ({
+  id: authUser.id,
+  name: profile?.name || authUser.email?.split('@')[0] || 'User',
+  email: profile?.email || authUser.email || '',
+  phone: profile?.phone || '',
+  role: profile?.role === 'admin' ? 'admin' : 'customer',
+  registeredAt: profile?.registered_at,
+  storeId: profile?.store_id || '',
+});
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('omnistore-session');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    if (user) localStorage.setItem('omnistore-session', JSON.stringify(user));
-    else localStorage.removeItem('omnistore-session');
-  }, [user]);
+    const syncUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      if (!session?.user) {
+        setUser(null);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      setUser(mapProfileToUser(session.user, profile));
+    };
+
+    syncUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
+        setUser(null);
+        return;
+      }
+
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+        .then(({ data: profile }) => setUser(mapProfileToUser(session.user, profile)));
+    });
+
+    return () => authListener.subscription.unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string, storeId?: string): Promise<boolean> => {
-    const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
-    // Match by email + password AND storeId for strict store isolation
-    const found = users.find(u => u.email === email && u.password === password && (!storeId || u.storeId === storeId));
-    if (found) {
-      const { data: profile } = await supabase.from('profiles').select('*').eq('email', email).eq('store_id', storeId || '').maybeSingle();
-      if (profile) {
-        found.registeredAt = profile.registered_at;
-      }
-      setUser(found);
-      return true;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) return false;
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+
+    if (storeId && profile?.store_id && profile.store_id !== storeId) {
+      await supabase.auth.signOut();
+      setUser(null);
+      return false;
     }
-    return false;
-  };
 
-  const register = async (name: string, email: string, password: string, role: 'customer' | 'admin' = 'customer', storeId?: string): Promise<boolean> => {
-    const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
-    // Allow same email in different stores
-    const existing = users.find(u => u.email === email);
-    if (existing) return false;
-
-    const userId = `user-${Date.now()}`;
-    const now = new Date().toISOString();
-    const newUser: User = { id: userId, name, email, password, role, registeredAt: now, storeId };
-
-    users.push(newUser);
-    localStorage.setItem('omnistore-users', JSON.stringify(users));
-
-    await supabase.from('profiles').insert({
-      user_id: userId,
-      name,
-      email,
-      role,
-      store_id: storeId || '',
-    } as any);
-
-    setUser(newUser);
+    setUser(mapProfileToUser(data.user, profile));
     return true;
   };
 
-  const logout = () => setUser(null);
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    role: 'customer' | 'admin' = 'customer',
+    storeId?: string,
+  ): Promise<boolean> => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          role,
+          store_id: storeId || '',
+        },
+      },
+    });
+
+    if (error || !data.user) return false;
+
+    await supabase.from('profiles').upsert({
+      user_id: data.user.id,
+      name,
+      email,
+      phone: '',
+      role,
+      store_id: storeId || '',
+    } as never, { onConflict: 'user_id' });
+
+    const mappedUser: User = {
+      id: data.user.id,
+      name,
+      email,
+      phone: '',
+      role,
+      storeId,
+      registeredAt: new Date().toISOString(),
+    };
+
+    if (data.session) setUser(mappedUser);
+    return true;
+  };
+
+  const logout = () => {
+    setUser(null);
+    supabase.auth.signOut();
+  };
 
   const updateUser = (updates: Partial<User>) => {
     if (!user) return;
     const updated = { ...user, ...updates };
     setUser(updated);
-    const users: User[] = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
-    const idx = users.findIndex(u => u.id === user.id);
-    if (idx !== -1) { users[idx] = updated; localStorage.setItem('omnistore-users', JSON.stringify(users)); }
 
     const dbUpdates: Record<string, unknown> = {};
-    if (updates.name) dbUpdates.name = updates.name;
-    if (updates.email) dbUpdates.email = updates.email;
-    supabase.from('profiles').update(dbUpdates).eq('user_id', user.id).then();
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.email !== undefined) dbUpdates.email = updates.email;
+    if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
+
+    if (Object.keys(dbUpdates).length > 0) {
+      supabase.from('profiles').update(dbUpdates as never).eq('user_id', user.id).then();
+    }
   };
 
   return (
