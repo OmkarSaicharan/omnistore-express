@@ -49,6 +49,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          credit_ledger_flag: boolean
           customer_unique_id: string | null
           date: string
           id: string
@@ -64,6 +65,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          credit_ledger_flag?: boolean
           customer_unique_id?: string | null
           date: string
           id: string
@@ -79,6 +81,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          credit_ledger_flag?: boolean
           customer_unique_id?: string | null
           date?: string
           id?: string
@@ -140,6 +143,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          phone: string | null
           registered_at: string
           role: string
           store_id: string | null
@@ -150,6 +154,7 @@ export type Database = {
           email: string
           id?: string
           name: string
+          phone?: string | null
           registered_at?: string
           role?: string
           store_id?: string | null
@@ -160,6 +165,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          phone?: string | null
           registered_at?: string
           role?: string
           store_id?: string | null

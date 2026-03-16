@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Zap, CreditCard } from 'lucide-react';
+import { Plus, Zap } from 'lucide-react';
 import { Product } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
@@ -9,7 +9,7 @@ import { useStore } from '@/contexts/StoreContext';
 import { useNavigate } from 'react-router-dom';
 import { StockBar } from './StockBar';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { OrderPaymentDialog } from './OrderPaymentDialog';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -34,6 +34,16 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
     return false;
   };
 
+  const openUpiApp = (method: 'phonePe' | 'googlePay' | 'paytm', amount: number, orderId: string) => {
+    const upiId = '9392965097@ybl';
+    const links: Record<typeof method, string> = {
+      phonePe: `phonepe://pay?pa=${upiId}&pn=${storeName}&am=${amount}&tn=${storeName}+Order+${orderId}`,
+      googlePay: `tez://upi/pay?pa=${upiId}&pn=${storeName}&am=${amount}&tn=${storeName}+Order+${orderId}`,
+      paytm: `paytmmp://pay?pa=${upiId}&pn=${storeName}&am=${amount}&tn=${storeName}+Order+${orderId}`,
+    };
+    window.open(links[method], '_blank');
+  };
+
   const handleAddToCart = () => {
     if (requireLogin()) return;
     addToCart(product);
@@ -45,19 +55,20 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
     setShowPayment(true);
   };
 
-  const handlePayment = async (method: string) => {
-    const order = await buyNow(product);
-    if (order) {
-      const upiId = '9392965097@ybl';
-      const links: Record<string, string> = {
-        phonePe: `phonepe://pay?pa=${upiId}&pn=${storeName}&am=${product.price}&tn=${storeName}+Order+${order.id}`,
-        googlePay: `tez://upi/pay?pa=${upiId}&pn=${storeName}&am=${product.price}&tn=${storeName}+Order+${order.id}`,
-        paytm: `paytmmp://pay?pa=${upiId}&pn=${storeName}&am=${product.price}&tn=${storeName}+Order+${order.id}`,
-      };
-      window.open(links[method], '_blank');
-      toast.success(`Order ${order.id} placed for ${name}!`);
-      setShowPayment(false);
+  const handleConfirm = async ({ paymentMethod, paymentStatus, pickupDate, pickupTime, upiApp }: { paymentMethod: any; paymentStatus: string; pickupDate: string; pickupTime: string; upiApp?: 'phonePe' | 'googlePay' | 'paytm'; }) => {
+    const order = await buyNow(product, paymentMethod, paymentStatus, pickupDate, pickupTime);
+    if (!order) return;
+
+    if (paymentMethod === 'online' && upiApp) {
+      openUpiApp(upiApp, product.price, order.id);
+      toast.success(`Order ${order.id} placed with online payment`);
+    } else if (paymentMethod === 'credit_ledger') {
+      toast.success(`Order ${order.id} placed under Credit Ledger`);
+    } else {
+      toast.success(`Order ${order.id} placed with Cash on Grab`);
     }
+
+    setShowPayment(false);
   };
 
   return (
@@ -105,26 +116,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         </div>
       </motion.div>
 
-      <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent className="bg-card">
-          <DialogHeader>
-            <DialogTitle>{t('payment.title')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 pt-2">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">{name}</p>
-              <p className="text-2xl font-bold text-primary">{t('currency')}{product.price}</p>
-            </div>
-            {(['phonePe', 'googlePay', 'paytm'] as const).map(method => (
-              <Button key={method} variant="outline" className="w-full justify-start gap-3 h-14 text-base"
-                onClick={() => handlePayment(method)}>
-                <CreditCard className="h-5 w-5 text-primary" />
-                {t(`payment.${method}`)}
-              </Button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <OrderPaymentDialog amount={product.price} open={showPayment} onOpenChange={setShowPayment} onConfirm={handleConfirm} />
     </>
   );
 }

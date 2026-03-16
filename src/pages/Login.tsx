@@ -32,28 +32,30 @@ export default function Login() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <div className="pt-24 pb-8 container mx-auto px-4 flex items-center justify-center min-h-[80vh]">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-8 w-full max-w-md">
-          <div className="text-center mb-6">
-            <LogIn className="h-10 w-10 text-primary mx-auto mb-2" />
+      <div className="container mx-auto flex min-h-[80vh] items-center justify-center px-4 pb-8 pt-24">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card w-full max-w-md p-8">
+          <div className="mb-6 text-center">
+            <LogIn className="mx-auto mb-2 h-10 w-10 text-primary" />
             <h1 className="text-2xl font-bold">{t('auth.login')}</h1>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-1 block">{t('auth.email')}</label>
+              <label className="mb-1 block text-sm font-medium">{t('auth.email')}</label>
               <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">{t('auth.password')}</label>
+              <label className="mb-1 block text-sm font-medium">{t('auth.password')}</label>
               <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
-            {error && <p className="text-destructive text-sm">{error}</p>}
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-sm text-primary hover:underline">Forgot Password?</Link>
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full">{t('auth.loginBtn')}</Button>
           </form>
-          <p className="text-center text-sm text-muted-foreground mt-4">
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             {t('auth.noAccount')}{' '}
-            <Link to={`${base}/register`} className="text-primary font-medium hover:underline">{t('auth.register')}</Link>
+            <Link to={`${base}/register`} className="font-medium text-primary hover:underline">{t('auth.register')}</Link>
           </p>
         </motion.div>
       </div>

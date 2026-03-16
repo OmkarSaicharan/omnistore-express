@@ -32,10 +32,6 @@ interface StoreItem {
   admin_user_id: string;
 }
 
-function generateSecretKey() {
-  return 'SK-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
-}
-
 export default function MasterAdmin() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<StoreRequest[]>([]);
@@ -58,52 +54,9 @@ export default function MasterAdmin() {
   const handleApprove = async (req: StoreRequest) => {
     setProcessing(req.id);
     try {
-      const storeId = 'store-' + Date.now();
-      const userId = `user-${Date.now()}`;
-      const secretKey = generateSecretKey();
-
-      // Create the store
-      await supabase.from('stores').insert({
-        id: storeId,
-        name: req.store_name,
-        tagline: req.tagline || `Welcome to ${req.store_name}`,
-        category: req.category,
-        location: req.location || 'Online',
-        address: req.location || '',
-        state: req.state || '',
-        hero_image: '',
-        icon: '🏪',
-        badge: '',
-        color: 'from-primary/20 to-primary/5',
-        admin_user_id: userId,
-        secret_key: secretKey,
-      } as any);
-
-      // Create admin profile
-      await supabase.from('profiles').insert({
-        user_id: userId,
-        name: req.admin_name,
-        email: req.admin_email,
-        role: 'admin',
-        store_id: storeId,
-      } as any);
-
-      // Save admin user to localStorage
-      const users = JSON.parse(localStorage.getItem('omnistore-users') || '[]');
-      users.push({
-        id: userId,
-        name: req.admin_name,
-        email: req.admin_email,
-        password: req.admin_password,
-        role: 'admin',
-        registeredAt: new Date().toISOString(),
-      });
-      localStorage.setItem('omnistore-users', JSON.stringify(users));
-
-      // Update request status
-      await supabase.from('store_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() } as any).eq('id', req.id);
-
-      toast({ title: 'Store Approved', description: `${req.store_name} has been created. Secret Key: ${secretKey}` });
+      const { data, error } = await supabase.functions.invoke('approve-store-request', { body: { requestId: req.id } });
+      if (error) throw error;
+      toast({ title: 'Store Approved', description: `${req.store_name} created. Secret Key: ${data.secretKey}` });
       fetchData();
     } catch {
       toast({ title: 'Error', description: 'Failed to approve store', variant: 'destructive' });
@@ -114,7 +67,7 @@ export default function MasterAdmin() {
 
   const handleReject = async (req: StoreRequest) => {
     setProcessing(req.id);
-    await supabase.from('store_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() } as any).eq('id', req.id);
+    await supabase.from('store_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() } as never).eq('id', req.id);
     toast({ title: 'Request Rejected', description: `${req.store_name} registration was rejected.` });
     fetchData();
     setProcessing(null);
@@ -137,7 +90,7 @@ export default function MasterAdmin() {
   return (
     <div className="min-h-screen bg-background">
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
-        <div className="container mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="container mx-auto flex h-14 items-center gap-3 px-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -146,12 +99,12 @@ export default function MasterAdmin() {
         </div>
       </header>
 
-      <div className="pt-20 pb-10 container mx-auto px-4 max-w-4xl">
+      <div className="container mx-auto max-w-4xl px-4 pb-10 pt-20">
         <Tabs defaultValue="requests">
           <TabsList className="mb-6">
             <TabsTrigger value="requests" className="gap-1.5">
               <Clock className="h-4 w-4" />
-              Requests {pending.length > 0 && <span className="bg-primary text-primary-foreground text-xs px-1.5 rounded-full ml-1">{pending.length}</span>}
+              Requests {pending.length > 0 && <span className="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{pending.length}</span>}
             </TabsTrigger>
             <TabsTrigger value="stores" className="gap-1.5">
               <ShoppingCart className="h-4 w-4" />
@@ -160,31 +113,31 @@ export default function MasterAdmin() {
           </TabsList>
 
           <TabsContent value="requests">
-            <h2 className="text-xl font-bold mb-4">Pending Store Requests</h2>
+            <h2 className="mb-4 text-xl font-bold">Pending Store Requests</h2>
             {loading ? (
               <p className="text-muted-foreground">Loading...</p>
             ) : pending.length === 0 ? (
-              <p className="text-muted-foreground py-10 text-center">No pending requests</p>
+              <p className="py-10 text-center text-muted-foreground">No pending requests</p>
             ) : (
               <div className="space-y-4">
                 {pending.map(req => (
-                  <motion.div key={req.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border rounded-xl p-5">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <motion.div key={req.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-5">
+                    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                       <div className="flex-1 space-y-1">
-                        <h3 className="font-bold text-lg">{req.store_name}</h3>
+                        <h3 className="text-lg font-bold">{req.store_name}</h3>
                         <p className="text-sm text-muted-foreground">{req.tagline}</p>
-                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
-                          <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">{req.category}</span>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          <span className="rounded-full bg-secondary px-2 py-0.5 text-secondary-foreground">{req.category}</span>
                           {req.location && <span>{req.location}</span>}
                           {req.state && <span>• {req.state}</span>}
                         </div>
-                        <div className="mt-3 pt-3 border-t border-border space-y-0.5">
+                        <div className="mt-3 space-y-0.5 border-t border-border pt-3">
                           <p className="text-sm"><span className="font-medium">Admin:</span> {req.admin_name}</p>
                           <p className="text-sm"><span className="font-medium">Email:</span> {req.admin_email}</p>
                           <p className="text-xs text-muted-foreground">Submitted {new Date(req.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
-                      <div className="flex gap-2 shrink-0">
+                      <div className="flex shrink-0 gap-2">
                         <Button size="sm" onClick={() => handleApprove(req)} disabled={processing === req.id} className="gap-1.5">
                           <Check className="h-4 w-4" /> Approve
                         </Button>
@@ -200,15 +153,15 @@ export default function MasterAdmin() {
 
             {reviewed.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-3 text-muted-foreground">Reviewed Requests</h3>
+                <h3 className="mb-3 text-lg font-semibold text-muted-foreground">Reviewed Requests</h3>
                 <div className="space-y-3">
                   {reviewed.map(req => (
-                    <div key={req.id} className="bg-card/50 border border-border/50 rounded-xl p-4 flex items-center justify-between">
+                    <div key={req.id} className="flex items-center justify-between rounded-xl border border-border/50 bg-card/50 p-4">
                       <div>
                         <p className="font-medium">{req.store_name}</p>
                         <p className="text-xs text-muted-foreground">{req.admin_name} • {req.admin_email}</p>
                       </div>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${req.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${req.status === 'approved' ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'}`}>
                         {req.status.toUpperCase()}
                       </span>
                     </div>
@@ -219,25 +172,23 @@ export default function MasterAdmin() {
           </TabsContent>
 
           <TabsContent value="stores">
-            <h2 className="text-xl font-bold mb-4">All Stores</h2>
+            <h2 className="mb-4 text-xl font-bold">All Stores</h2>
             {stores.length === 0 ? (
-              <p className="text-muted-foreground py-10 text-center">No stores yet</p>
+              <p className="py-10 text-center text-muted-foreground">No stores yet</p>
             ) : (
               <div className="space-y-3">
                 {stores.map(store => (
-                  <div key={store.id} className="bg-card border border-border rounded-xl p-4 flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold truncate">{store.name}</h3>
-                      <p className="text-sm text-muted-foreground truncate">{store.tagline}</p>
-                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-1">
-                        <span className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">{store.category}</span>
+                  <div key={store.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-bold">{store.name}</h3>
+                      <p className="truncate text-sm text-muted-foreground">{store.tagline}</p>
+                      <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-secondary-foreground">{store.category}</span>
                         {store.location && <span>{store.location}</span>}
                       </div>
                     </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Button size="sm" variant="outline" onClick={() => navigate(`/store/${store.id}/home`)}>
-                        View
-                      </Button>
+                    <div className="flex shrink-0 gap-2">
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/store/${store.id}/home`)}>View</Button>
                       <Button size="sm" variant="destructive" onClick={() => handleDeleteStore(store)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
