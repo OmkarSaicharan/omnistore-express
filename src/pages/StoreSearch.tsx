@@ -170,29 +170,29 @@ export default function StoreSearch() {
               <div className="h-20 sm:h-24 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
                 <ShoppingCart className="h-10 w-10 sm:h-12 sm:w-12 text-primary/30" />
                 {store.badge && (
-                  <span className="absolute top-3 right-3 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                  <span className="absolute top-2 right-2 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">
                     {store.badge}
                   </span>
                 )}
               </div>
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="font-bold text-lg leading-tight">{store.name}</h3>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Star className="h-3.5 w-3.5 fill-primary text-primary" />
-                    <span className="text-sm font-semibold">{store.rating}</span>
+              <div className="p-2.5 sm:p-3">
+                <div className="flex items-start justify-between gap-1 mb-0.5">
+                  <h3 className="font-bold text-xs sm:text-sm leading-tight truncate">{store.name}</h3>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Star className="h-3 w-3 fill-primary text-primary" />
+                    <span className="text-[10px] sm:text-xs font-semibold">{store.rating}</span>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-1">{store.tagline}</p>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
-                  <MapPin className="h-3 w-3 shrink-0" />
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate mb-0.5">{store.tagline}</p>
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-2">
+                  <MapPin className="h-2.5 w-2.5 shrink-0" />
                   <span className="truncate">{store.location}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">{store.category}</span>
-                  <Button size="sm" className="gap-1.5 group-hover:gap-2.5 transition-all pointer-events-none">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9px] sm:text-[10px] bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded-full truncate max-w-[60px] sm:max-w-none">{store.category}</span>
+                  <Button size="sm" className="h-7 text-[10px] sm:text-xs px-2 sm:px-3 gap-1 group-hover:gap-1.5 transition-all pointer-events-none">
                     Enter Store
-                    <ArrowRight className="h-3.5 w-3.5" />
+                    <ArrowRight className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
