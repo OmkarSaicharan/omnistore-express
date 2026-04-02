@@ -22,10 +22,21 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (await login(email, password, storeId)) {
-      navigate(`${base}/profile`);
-    } else {
-      setError(t('auth.loginError'));
+    try {
+      if (await login(email, password, storeId)) {
+        navigate(`${base}/profile`);
+      } else {
+        setError(t('auth.loginError'));
+      }
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.includes('Invalid login credentials')) {
+        setError('Invalid email or password. Please try again.');
+      } else if (msg.includes('Email not confirmed')) {
+        setError('Please verify your email before logging in.');
+      } else {
+        setError(msg || t('auth.loginError'));
+      }
     }
   };
 
