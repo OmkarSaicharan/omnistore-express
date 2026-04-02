@@ -52,7 +52,6 @@ export default function Register() {
     e.preventDefault();
     setAdminError('');
 
-    // Validate secret key against store's secret key
     if (!store) {
       setAdminError('Store not found');
       return;
@@ -63,11 +62,20 @@ export default function Register() {
       return;
     }
 
-    const success = await register(adminName, adminEmail, adminPassword, 'admin', storeId);
-    if (success) {
-      navigate(`${base}/admin`);
-    } else {
-      setAdminError(t('auth.registerError'));
+    try {
+      const success = await register(adminName, adminEmail, adminPassword, 'admin', storeId);
+      if (success) {
+        navigate(`${base}/admin`);
+      } else {
+        setAdminError(t('auth.registerError'));
+      }
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.includes('already registered') || msg.includes('already been registered')) {
+        setAdminError('This email is already registered. Please login instead.');
+      } else {
+        setAdminError(msg || t('auth.registerError'));
+      }
     }
   };
 
