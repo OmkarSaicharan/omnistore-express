@@ -157,7 +157,7 @@ export default function StoreSearch() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map((store, i) => (
             <motion.div
               key={store.id}
@@ -165,10 +165,10 @@ export default function StoreSearch() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
               onClick={() => handleEnterStore(store.id)}
-              className="bg-card rounded-xl overflow-hidden group hover:shadow-lg transition-all duration-300 border border-border/50 cursor-pointer"
+              className="bg-card rounded-lg overflow-hidden group hover:shadow-lg transition-all duration-300 border border-border/50 cursor-pointer"
             >
-              <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
-                <ShoppingCart className="h-16 w-16 text-primary/30" />
+              <div className="h-20 sm:h-24 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
+                <ShoppingCart className="h-10 w-10 sm:h-12 sm:w-12 text-primary/30" />
                 {store.badge && (
                   <span className="absolute top-3 right-3 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
                     {store.badge}
