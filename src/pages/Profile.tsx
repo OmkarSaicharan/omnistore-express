@@ -108,7 +108,7 @@ export default function Profile() {
             </div>
           ) : (
             <Button variant="outline" onClick={() => { setEditName(user.name); setEditPhone(user.phone || ''); setEditing(true); }}>
-              {t('profile.changeName')}
+              Edit
             </Button>
           )}
         </div>
