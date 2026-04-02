@@ -32,10 +32,19 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (await register(name, email, password, 'customer', storeId)) {
-      navigate(`${base}/profile`);
-    } else {
-      setError(t('auth.registerError'));
+    try {
+      if (await register(name, email, password, 'customer', storeId)) {
+        navigate(`${base}/profile`);
+      } else {
+        setError(t('auth.registerError'));
+      }
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.includes('already registered') || msg.includes('already been registered')) {
+        setError('This email is already registered. Please login instead.');
+      } else {
+        setError(msg || t('auth.registerError'));
+      }
     }
   };
 
