@@ -138,6 +138,13 @@ Deno.serve(async (req) => {
       throw profileError;
     }
 
+    // Phase 1: assign store_admin role in user_roles table
+    await admin.from('user_roles').insert({
+      user_id: adminUserId,
+      role: 'store_admin',
+      store_id: storeId,
+    });
+
     await admin.from('store_requests').update({
       status: 'approved',
       reviewed_at: new Date().toISOString(),
