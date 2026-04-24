@@ -296,15 +296,62 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          store_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          store_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          store_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_user_store_id: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _store_id?: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      place_order_tx: {
+        Args: {
+          _credit_ledger_flag: boolean
+          _customer_unique_id: string
+          _items: Json
+          _order_id: string
+          _payment_method: string
+          _payment_status: string
+          _pickup_date: string
+          _pickup_time: string
+          _store_id: string
+          _user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "master_admin" | "store_admin" | "customer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -431,6 +478,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["master_admin", "store_admin", "customer"],
+    },
   },
 } as const

@@ -94,103 +94,95 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const generateCustomerUniqueId = (userId: string) => `CUS-${userId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8).toUpperCase()}`;
 
+  const callPlaceOrder = async (
+    payload: { items: { productId: string; quantity: number }[]; paymentMethod: string; paymentStatus: string; pickupDate: string; pickupTime: string }
+  ) => {
+    const { data, error } = await supabase.functions.invoke('place-order', {
+      body: { storeId, ...payload },
+    });
+    if (error) throw new Error(error.message || 'Order failed');
+    if (data?.error) throw new Error(typeof data.error === 'string' ? data.error : 'Order failed');
+    return data;
+  };
+
   const checkout = async (paymentMethod = 'cash_on_grab', paymentStatus = 'pending', pickupDate = '', pickupTime = ''): Promise<Order | null> => {
     if (!user || items.length === 0 || !storeId) return null;
 
-    const now = new Date().toISOString();
-    const custId = generateCustomerUniqueId(user.id);
-    const order: Order = {
-      id: `ORD-${Math.floor(Math.random() * 100000)}`,
-      userId: user.id,
-      items: items.map(i => ({ productName: i.product.name, quantity: i.quantity, price: i.product.price * i.quantity })),
-      total,
-      date: new Date().toLocaleDateString(),
-      orderedAt: now,
-      status: 'Pending',
-      paymentMethod,
-      paymentStatus,
-      pickupDate,
-      pickupTime,
-      customerUniqueId: custId,
-      customerName: user.name,
-      creditLedgerFlag: paymentMethod === 'credit_ledger',
-    };
+    try {
+      const result = await callPlaceOrder({
+        items: items.map(i => ({ productId: i.product.id, quantity: i.quantity })),
+        paymentMethod, paymentStatus, pickupDate, pickupTime,
+      });
 
-    await supabase.from('orders').insert({
-      id: order.id,
-      user_id: order.userId,
-      items: order.items,
-      total: order.total,
-      date: order.date,
-      ordered_at: now,
-      status: order.status,
-      store_id: storeId,
-      payment_method: paymentMethod,
-      payment_status: paymentStatus,
-      pickup_date: pickupDate,
-      pickup_time: pickupTime,
-      customer_unique_id: custId,
-      credit_ledger_flag: paymentMethod === 'credit_ledger',
-    } as never);
+      const placed = result?.order;
+      const order: Order = {
+        id: placed?.order_id || `ORD-${Date.now()}`,
+        userId: user.id,
+        items: (placed?.items || []) as { productName: string; quantity: number; price: number }[],
+        total: Number(placed?.total ?? total),
+        date: new Date().toLocaleDateString(),
+        orderedAt: new Date().toISOString(),
+        status: 'Pending',
+        paymentMethod,
+        paymentStatus,
+        pickupDate,
+        pickupTime,
+        customerUniqueId: generateCustomerUniqueId(user.id),
+        customerName: user.name,
+        creditLedgerFlag: paymentMethod === 'credit_ledger',
+      };
 
-    await supabase.from('profiles').update({ customer_unique_id: custId } as never).eq('user_id', user.id);
+      // Refresh local stock from server (authoritative)
+      for (const item of items) {
+        const current = products.find(p => p.id === item.product.id);
+        if (current) updateProduct(item.product.id, { stock: Math.max(0, current.stock - item.quantity) });
+      }
 
-    for (const item of items) {
-      const current = products.find(p => p.id === item.product.id);
-      if (current) updateProduct(item.product.id, { stock: Math.max(0, current.stock - item.quantity) });
+      setOrders(prev => [order, ...prev]);
+      clearCart();
+      return order;
+    } catch (e) {
+      console.error('Checkout failed:', e);
+      throw e;
     }
-
-    setOrders(prev => [order, ...prev]);
-    clearCart();
-    return order;
   };
 
   const buyNow = async (product: Product, paymentMethod = 'cash_on_grab', paymentStatus = 'pending', pickupDate = '', pickupTime = ''): Promise<Order | null> => {
     if (!user || product.stock <= 0 || !storeId) return null;
 
-    const now = new Date().toISOString();
-    const custId = generateCustomerUniqueId(user.id);
-    const order: Order = {
-      id: `ORD-${Math.floor(Math.random() * 100000)}`,
-      userId: user.id,
-      items: [{ productName: product.name, quantity: 1, price: product.price }],
-      total: product.price,
-      date: new Date().toLocaleDateString(),
-      orderedAt: now,
-      status: 'Pending',
-      paymentMethod,
-      paymentStatus,
-      pickupDate,
-      pickupTime,
-      customerUniqueId: custId,
-      customerName: user.name,
-      creditLedgerFlag: paymentMethod === 'credit_ledger',
-    };
+    try {
+      const result = await callPlaceOrder({
+        items: [{ productId: product.id, quantity: 1 }],
+        paymentMethod, paymentStatus, pickupDate, pickupTime,
+      });
 
-    await supabase.from('orders').insert({
-      id: order.id,
-      user_id: order.userId,
-      items: order.items,
-      total: order.total,
-      date: order.date,
-      ordered_at: now,
-      status: order.status,
-      store_id: storeId,
-      payment_method: paymentMethod,
-      payment_status: paymentStatus,
-      pickup_date: pickupDate,
-      pickup_time: pickupTime,
-      customer_unique_id: custId,
-      credit_ledger_flag: paymentMethod === 'credit_ledger',
-    } as never);
+      const placed = result?.order;
+      const order: Order = {
+        id: placed?.order_id || `ORD-${Date.now()}`,
+        userId: user.id,
+        items: (placed?.items || [{ productName: product.name, quantity: 1, price: product.price }]) as { productName: string; quantity: number; price: number }[],
+        total: Number(placed?.total ?? product.price),
+        date: new Date().toLocaleDateString(),
+        orderedAt: new Date().toISOString(),
+        status: 'Pending',
+        paymentMethod,
+        paymentStatus,
+        pickupDate,
+        pickupTime,
+        customerUniqueId: generateCustomerUniqueId(user.id),
+        customerName: user.name,
+        creditLedgerFlag: paymentMethod === 'credit_ledger',
+      };
 
-    await supabase.from('profiles').update({ customer_unique_id: custId } as never).eq('user_id', user.id);
+      const current = products.find(p => p.id === product.id);
+      if (current) updateProduct(product.id, { stock: Math.max(0, current.stock - 1) });
 
-    const current = products.find(p => p.id === product.id);
-    if (current) updateProduct(product.id, { stock: Math.max(0, current.stock - 1) });
-
-    setOrders(prev => [order, ...prev]);
-    return order;
+      setOrders(prev => [order, ...prev]);
+      return order;
+    } catch (e) {
+      console.error('Buy now failed:', e);
+      throw e;
+    }
   };
 
   return (
