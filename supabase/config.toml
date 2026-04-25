@@ -1,1 +1,4 @@
 project_id = "yjxniqcctylkyvuyzzcq"
+
+[functions.firebase-sync]
+verify_jwt = false
