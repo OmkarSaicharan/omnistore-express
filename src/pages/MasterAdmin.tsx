@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Store, Check, X, Clock, ShoppingCart, Trash2 } from 'lucide-react';
+import { ArrowLeft, Store, Check, X, Clock, ShoppingCart, Trash2, KeyRound, Copy, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -30,14 +30,24 @@ interface StoreItem {
   state: string | null;
   created_at: string | null;
   admin_user_id: string;
+  secret_key: string;
+}
+
+interface AdminProfile {
+  user_id: string;
+  name: string;
+  email: string;
+  store_id: string | null;
 }
 
 export default function MasterAdmin() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<StoreRequest[]>([]);
   const [stores, setStores] = useState<StoreItem[]>([]);
+  const [admins, setAdmins] = useState<Record<string, AdminProfile>>({});
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
 
   const fetchData = async () => {
     const [reqRes, storeRes] = await Promise.all([
@@ -45,11 +55,36 @@ export default function MasterAdmin() {
       supabase.from('stores').select('*').order('created_at', { ascending: false }),
     ]);
     if (reqRes.data) setRequests(reqRes.data as any);
-    if (storeRes.data) setStores(storeRes.data as any);
+    const storeList = (storeRes.data || []) as StoreItem[];
+    setStores(storeList);
+
+    // Fetch admin profiles for all stores
+    const adminIds = storeList.map(s => s.admin_user_id).filter(Boolean);
+    if (adminIds.length > 0) {
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('user_id, name, email, store_id')
+        .in('user_id', adminIds);
+      if (profs) {
+        const map: Record<string, AdminProfile> = {};
+        profs.forEach((p: any) => { map[p.user_id] = p; });
+        setAdmins(map);
+      }
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+
+    // Realtime: refresh when stores or store_requests change
+    const channel = supabase
+      .channel('master-admin-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stores' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'store_requests' }, () => fetchData())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const handleApprove = async (req: StoreRequest) => {
     setProcessing(req.id);
@@ -84,6 +119,11 @@ export default function MasterAdmin() {
     fetchData();
   };
 
+  const copyToClipboard = (label: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    toast({ title: 'Copied', description: `${label} copied to clipboard.` });
+  };
+
   const pending = requests.filter(r => r.status === 'pending');
   const reviewed = requests.filter(r => r.status !== 'pending');
 
@@ -101,7 +141,7 @@ export default function MasterAdmin() {
 
       <div className="container mx-auto max-w-4xl px-4 pb-10 pt-20">
         <Tabs defaultValue="requests">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 flex-wrap h-auto">
             <TabsTrigger value="requests" className="gap-1.5">
               <Clock className="h-4 w-4" />
               Requests {pending.length > 0 && <span className="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{pending.length}</span>}
@@ -109,6 +149,10 @@ export default function MasterAdmin() {
             <TabsTrigger value="stores" className="gap-1.5">
               <ShoppingCart className="h-4 w-4" />
               All Stores ({stores.length})
+            </TabsTrigger>
+            <TabsTrigger value="keys" className="gap-1.5">
+              <KeyRound className="h-4 w-4" />
+              Secret Keys ({stores.length})
             </TabsTrigger>
           </TabsList>
 
@@ -195,6 +239,68 @@ export default function MasterAdmin() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="keys">
+            <h2 className="mb-2 text-xl font-bold">Store Admin Secret Keys</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Confidential — every approved store's admin login secret key is shown here. New stores appear automatically.
+            </p>
+            {stores.length === 0 ? (
+              <p className="py-10 text-center text-muted-foreground">No stores yet</p>
+            ) : (
+              <div className="space-y-3">
+                {stores.map(store => {
+                  const admin = admins[store.admin_user_id];
+                  const isRevealed = revealed[store.id];
+                  return (
+                    <motion.div
+                      key={store.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-xl border border-border bg-card p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="min-w-0">
+                          <h3 className="truncate font-bold">{store.name}</h3>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {admin ? `${admin.name} • ${admin.email}` : 'Admin profile loading...'}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5">
+                          {store.id}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border/50 p-2">
+                        <KeyRound className="h-4 w-4 text-primary shrink-0" />
+                        <code className="flex-1 truncate text-xs sm:text-sm font-mono">
+                          {isRevealed ? store.secret_key : '•'.repeat(Math.min(store.secret_key?.length || 16, 22))}
+                        </code>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => setRevealed(p => ({ ...p, [store.id]: !p[store.id] }))}
+                          title={isRevealed ? 'Hide' : 'Reveal'}
+                        >
+                          {isRevealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => copyToClipboard(`${store.name} secret key`, store.secret_key)}
+                          title="Copy"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
