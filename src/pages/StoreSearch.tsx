@@ -178,7 +178,7 @@ export default function StoreSearch() {
       </header>
 
       {/* Spacer: header (h-14=56) + awning (40 mobile / 56 desktop) + OPEN tag clearance */}
-      <div className="h-[120px] sm:h-[140px]" />
+      <div className="h-[140px] sm:h-[160px]" />
 
       <div className="pb-10 container mx-auto px-4">
 
