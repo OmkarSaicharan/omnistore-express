@@ -168,8 +168,8 @@ export default function StoreSearch() {
               />
             ))}
           </svg>
-          <div className="absolute left-1/2 -translate-x-1/2 top-full flex flex-col items-center pointer-events-none">
-            <div className="w-px h-2 bg-foreground/40" />
+          <div className="absolute left-1/2 -translate-x-1/2 top-full flex flex-col items-center pointer-events-none animate-sign-swing">
+            <div className="w-px h-7 sm:h-9 bg-foreground/40" />
             <div className="bg-card border-2 border-primary text-primary text-[9px] sm:text-[11px] font-extrabold tracking-[0.25em] px-2.5 py-0.5 rounded-sm shadow-md">
               OPEN
             </div>
@@ -178,7 +178,7 @@ export default function StoreSearch() {
       </header>
 
       {/* Spacer: header (h-14=56) + awning (40 mobile / 56 desktop) + OPEN tag clearance */}
-      <div className="h-[120px] sm:h-[140px]" />
+      <div className="h-[140px] sm:h-[160px]" />
 
       <div className="pb-10 container mx-auto px-4">
 

@@ -149,3 +149,13 @@
     display: none;
   }
 }
+/* Wind swing for hanging signs */
+@keyframes sign-swing {
+  0%   { transform: rotate(-6deg); }
+  50%  { transform: rotate(6deg); }
+  100% { transform: rotate(-6deg); }
+}
+.animate-sign-swing {
+  transform-origin: top center;
+  animation: sign-swing 3.5s ease-in-out infinite;
+}
