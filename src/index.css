@@ -4,7 +4,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 @layer base {
   :root {
     --background: 240 4% 95%;
@@ -151,11 +150,11 @@
 }
 /* Wind swing for hanging signs */
 @keyframes sign-swing {
-  0%   { transform: rotate(-6deg); }
-  50%  { transform: rotate(6deg); }
-  100% { transform: rotate(-6deg); }
+  0%   { transform: rotate(-14deg); }
+  50%  { transform: rotate(14deg); }
+  100% { transform: rotate(-14deg); }
 }
 .animate-sign-swing {
   transform-origin: top center;
-  animation: sign-swing 3.5s ease-in-out infinite;
+  animation: sign-swing 2.4s ease-in-out infinite;
 }
