@@ -16,6 +16,7 @@ interface StoreItem {
   rating: number;
   location: string;
   badge?: string;
+  hero_image?: string;
 }
 
 export default function StoreSearch() {
@@ -49,6 +50,7 @@ export default function StoreSearch() {
         rating: 4.8,
         location: s.location || '',
         badge: s.badge || undefined,
+        hero_image: s.hero_image || undefined,
       })));
     }
     setLoading(false);
@@ -167,8 +169,21 @@ export default function StoreSearch() {
               onClick={() => handleEnterStore(store.id)}
               className="bg-card rounded-lg overflow-hidden group hover:shadow-lg transition-all duration-300 border border-border/50 cursor-pointer"
             >
-              <div className="h-20 sm:h-24 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
-                <ShoppingCart className="h-10 w-10 sm:h-12 sm:w-12 text-primary/30" />
+              <div className="h-20 sm:h-24 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative overflow-hidden">
+                {store.hero_image ? (
+                  <img
+                    src={store.hero_image}
+                    alt={store.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <ShoppingCart className="h-10 w-10 sm:h-12 sm:w-12 text-primary/30" />
+                )}
                 {store.badge && (
                   <span className="absolute top-2 right-2 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">
                     {store.badge}
