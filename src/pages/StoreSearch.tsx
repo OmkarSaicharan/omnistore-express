@@ -137,51 +137,51 @@ export default function StoreSearch() {
         </div>
       </header>
 
-      <div className="pt-20 pb-10 container mx-auto px-4">
-        {/* Decorative storefront awning */}
-        <div className="relative w-full mt-2 mb-6" aria-hidden="true">
-          <svg
-            viewBox="0 0 1200 70"
-            preserveAspectRatio="none"
-            className="w-full h-12 sm:h-16 drop-shadow-md"
-          >
-            {/* Awning scallops - alternating primary/white */}
-            <defs>
-              <linearGradient id="awningPink" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(var(--primary))" />
-                <stop offset="100%" stopColor="hsl(var(--primary) / 0.85)" />
-              </linearGradient>
-            </defs>
-            {/* Top bar */}
-            <rect x="0" y="0" width="1200" height="14" fill="hsl(var(--primary))" />
-            {/* Stripes (rectangles down) */}
-            {Array.from({ length: 24 }).map((_, i) => (
-              <rect
-                key={i}
-                x={i * 50}
-                y="14"
-                width="50"
-                height="36"
-                fill={i % 2 === 0 ? 'url(#awningPink)' : 'hsl(0 0% 100%)'}
-              />
-            ))}
-            {/* Scalloped bottom edge */}
-            {Array.from({ length: 24 }).map((_, i) => (
-              <path
-                key={`s-${i}`}
-                d={`M ${i * 50} 50 Q ${i * 50 + 25} 78 ${i * 50 + 50} 50 Z`}
-                fill={i % 2 === 0 ? 'hsl(var(--primary))' : 'hsl(0 0% 100%)'}
-              />
-            ))}
-          </svg>
-          {/* Hanging "OPEN" sign */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-full -mt-1 flex flex-col items-center pointer-events-none">
-            <div className="w-px h-3 bg-foreground/40" />
-            <div className="bg-card border-2 border-primary text-primary text-[10px] sm:text-xs font-extrabold tracking-[0.25em] px-3 py-1 rounded-sm shadow-md">
-              OPEN
-            </div>
+      {/* Decorative storefront awning - full width, flush with header */}
+      <div className="relative w-full pt-14 mb-6" aria-hidden="true">
+        <svg
+          viewBox="0 0 1200 70"
+          preserveAspectRatio="none"
+          className="block w-full h-12 sm:h-16 drop-shadow-md"
+        >
+          <defs>
+            <linearGradient id="awningPink" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(var(--primary))" />
+              <stop offset="100%" stopColor="hsl(var(--primary) / 0.85)" />
+            </linearGradient>
+          </defs>
+          {/* Top bar */}
+          <rect x="0" y="0" width="1200" height="14" fill="hsl(var(--primary))" />
+          {/* Stripes */}
+          {Array.from({ length: 24 }).map((_, i) => (
+            <rect
+              key={i}
+              x={i * 50}
+              y="14"
+              width="50"
+              height="36"
+              fill={i % 2 === 0 ? 'url(#awningPink)' : 'hsl(0 0% 100%)'}
+            />
+          ))}
+          {/* Scalloped bottom edge */}
+          {Array.from({ length: 24 }).map((_, i) => (
+            <path
+              key={`s-${i}`}
+              d={`M ${i * 50} 50 Q ${i * 50 + 25} 78 ${i * 50 + 50} 50 Z`}
+              fill={i % 2 === 0 ? 'hsl(var(--primary))' : 'hsl(0 0% 100%)'}
+            />
+          ))}
+        </svg>
+        {/* Hanging "OPEN" sign */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-full -mt-1 flex flex-col items-center pointer-events-none">
+          <div className="w-px h-3 bg-foreground/40" />
+          <div className="bg-card border-2 border-primary text-primary text-[10px] sm:text-xs font-extrabold tracking-[0.25em] px-3 py-1 rounded-sm shadow-md">
+            OPEN
           </div>
         </div>
+      </div>
+
+      <div className="pb-10 container mx-auto px-4">
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-10">
           <h1 className="text-3xl sm:text-4xl font-bold mb-3">Find your store</h1>
