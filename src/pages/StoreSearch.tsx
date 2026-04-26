@@ -135,55 +135,54 @@ export default function StoreSearch() {
             </Button>
           </div>
         </div>
-      </header>
 
-      {/* Decorative storefront awning - full width, flush with header */}
-      <div className="relative w-full pt-14 mb-6" aria-hidden="true">
-        <svg
-          viewBox="0 0 1200 70"
-          preserveAspectRatio="none"
-          className="block w-full h-12 sm:h-16 drop-shadow-md"
-        >
-          <defs>
-            <linearGradient id="awningPink" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="hsl(var(--primary))" />
-              <stop offset="100%" stopColor="hsl(var(--primary) / 0.85)" />
-            </linearGradient>
-          </defs>
-          {/* Top bar */}
-          <rect x="0" y="0" width="1200" height="14" fill="hsl(var(--primary))" />
-          {/* Stripes */}
-          {Array.from({ length: 24 }).map((_, i) => (
-            <rect
-              key={i}
-              x={i * 50}
-              y="14"
-              width="50"
-              height="36"
-              fill={i % 2 === 0 ? 'url(#awningPink)' : 'hsl(0 0% 100%)'}
-            />
-          ))}
-          {/* Scalloped bottom edge */}
-          {Array.from({ length: 24 }).map((_, i) => (
-            <path
-              key={`s-${i}`}
-              d={`M ${i * 50} 50 Q ${i * 50 + 25} 78 ${i * 50 + 50} 50 Z`}
-              fill={i % 2 === 0 ? 'hsl(var(--primary))' : 'hsl(0 0% 100%)'}
-            />
-          ))}
-        </svg>
-        {/* Hanging "OPEN" sign */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-full -mt-1 flex flex-col items-center pointer-events-none">
-          <div className="w-px h-3 bg-foreground/40" />
-          <div className="bg-card border-2 border-primary text-primary text-[10px] sm:text-xs font-extrabold tracking-[0.25em] px-3 py-1 rounded-sm shadow-md">
-            OPEN
+        {/* Decorative storefront awning - directly attached to header bottom, full bleed */}
+        <div className="relative w-full" aria-hidden="true">
+          <svg
+            viewBox="0 0 1200 70"
+            preserveAspectRatio="none"
+            className="block w-full h-10 sm:h-14 drop-shadow-md"
+          >
+            <defs>
+              <linearGradient id="awningPink" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(var(--primary))" />
+                <stop offset="100%" stopColor="hsl(var(--primary) / 0.85)" />
+              </linearGradient>
+            </defs>
+            <rect x="0" y="0" width="1200" height="14" fill="hsl(var(--primary))" />
+            {Array.from({ length: 24 }).map((_, i) => (
+              <rect
+                key={i}
+                x={i * 50}
+                y="14"
+                width="50"
+                height="36"
+                fill={i % 2 === 0 ? 'url(#awningPink)' : 'hsl(0 0% 100%)'}
+              />
+            ))}
+            {Array.from({ length: 24 }).map((_, i) => (
+              <path
+                key={`s-${i}`}
+                d={`M ${i * 50} 50 Q ${i * 50 + 25} 78 ${i * 50 + 50} 50 Z`}
+                fill={i % 2 === 0 ? 'hsl(var(--primary))' : 'hsl(0 0% 100%)'}
+              />
+            ))}
+          </svg>
+          <div className="absolute left-1/2 -translate-x-1/2 top-full flex flex-col items-center pointer-events-none">
+            <div className="w-px h-2 bg-foreground/40" />
+            <div className="bg-card border-2 border-primary text-primary text-[9px] sm:text-[11px] font-extrabold tracking-[0.25em] px-2.5 py-0.5 rounded-sm shadow-md">
+              OPEN
+            </div>
           </div>
         </div>
-      </div>
+      </header>
+
+      {/* Spacer: header (h-14=56) + awning (40 mobile / 56 desktop) + OPEN tag clearance */}
+      <div className="h-[120px] sm:h-[140px]" />
 
       <div className="pb-10 container mx-auto px-4">
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-6 sm:py-10">
           <h1 className="text-3xl sm:text-4xl font-bold mb-3">Find your store</h1>
           <p className="text-muted-foreground text-lg mb-8">Discover shops and explore their products</p>
           <div className="relative max-w-lg mx-auto">
