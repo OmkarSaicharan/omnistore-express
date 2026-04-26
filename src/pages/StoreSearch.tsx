@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import shopkeeperSearch from '@/assets/shopkeeper-search.png';
 
 interface StoreItem {
   id: string;
@@ -183,7 +184,17 @@ export default function StoreSearch() {
       <div className="pb-10 container mx-auto px-4">
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-6 sm:py-10">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-3">Find your store</h1>
+          <div className="flex items-center justify-center gap-3 sm:gap-4 mb-3">
+            <img
+              src={shopkeeperSearch}
+              alt="Shopkeeper searching"
+              loading="lazy"
+              width={96}
+              height={96}
+              className="h-16 w-16 sm:h-24 sm:w-24 object-contain animate-shopkeeper-search drop-shadow-md select-none"
+            />
+            <h1 className="text-3xl sm:text-4xl font-bold">Find your store</h1>
+          </div>
           <p className="text-muted-foreground text-lg mb-8">Discover shops and explore their products</p>
           <div className="relative max-w-lg mx-auto">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />

@@ -158,3 +158,16 @@
   transform-origin: top center;
   animation: sign-swing 2.4s ease-in-out infinite;
 }
+
+/* Shopkeeper searching motion */
+@keyframes shopkeeper-search {
+  0%   { transform: translateX(-4px) rotate(-4deg); }
+  25%  { transform: translateX(2px) rotate(2deg); }
+  50%  { transform: translateX(5px) rotate(5deg); }
+  75%  { transform: translateX(2px) rotate(2deg); }
+  100% { transform: translateX(-4px) rotate(-4deg); }
+}
+.animate-shopkeeper-search {
+  transform-origin: center bottom;
+  animation: shopkeeper-search 2.8s ease-in-out infinite;
+}
