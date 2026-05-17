@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { CartItem, Product, Order } from '@/types';
 import { useAuth } from './AuthContext';
 import { useProducts } from './ProductContext';
@@ -53,7 +53,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     creditLedgerFlag: o.credit_ledger_flag || false,
   });
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     if (!user || !storeId) { setOrders([]); return; }
     const { data } = await supabase
       .from('orders')
@@ -63,9 +63,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       .order('ordered_at', { ascending: false });
 
     if (data) setOrders(data.map(mapOrder));
-  };
+  }, [user, storeId]);
 
-  useEffect(() => { fetchOrders(); }, [user, storeId]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const addToCart = (product: Product) => {
     setItems(prev => {
