@@ -50,7 +50,9 @@ export default function Profile() {
     fetchProfile();
   }, [user]);
 
-  useEffect(() => { refreshOrders(); }, []);
+  useEffect(() => {
+    refreshOrders();
+  }, [refreshOrders, user?.id, storeId]);
 
   if (!user) return <Navigate to={`/store/${storeId}/login`} replace />;
 
