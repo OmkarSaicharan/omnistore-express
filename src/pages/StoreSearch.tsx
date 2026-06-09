@@ -25,6 +25,7 @@ export default function StoreSearch() {
   const [search, setSearch] = useState('');
   const [stores, setStores] = useState<StoreItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // Register dialog
   const [showRegister, setShowRegister] = useState(false);
@@ -41,7 +42,17 @@ export default function StoreSearch() {
   const [keyError, setKeyError] = useState('');
 
   const fetchStores = async () => {
-    const { data } = await supabase.from('stores').select('*');
+    setLoading(true);
+    setLoadError('');
+    const { data, error } = await supabase.from('stores').select('*');
+    if (error) {
+      console.error('Failed to load stores:', error);
+      setStores([]);
+      setLoadError(error.message.includes('Failed to fetch') ? 'Backend is unavailable right now. Please try again in a moment.' : error.message);
+      setLoading(false);
+      return;
+    }
+
     if (data) {
       setStores(data.map(s => ({
         id: s.id,
@@ -79,7 +90,7 @@ export default function StoreSearch() {
     }
     setSubmitting(true);
     try {
-      await supabase.from('store_requests').insert({
+      const { error: requestError } = await supabase.from('store_requests').insert({
         store_name: formData.storeName,
         tagline: formData.tagline,
         category: formData.category,
@@ -91,11 +102,16 @@ export default function StoreSearch() {
         status: 'pending',
       } as any);
 
+      if (requestError) {
+        throw requestError;
+      }
+
       setShowRegister(false);
       setFormData({ storeName: '', tagline: '', category: '', location: '', state: '', adminName: '', email: '', password: '' });
       toast({ title: 'Request Sent', description: 'Your store registration request has been sent to the admin for approval.' });
-    } catch {
-      setError('Failed to submit request. Try again.');
+    } catch (err: any) {
+      console.error('Failed to submit store request:', err);
+      setError(err?.message?.includes('Failed to fetch') ? 'Backend is unavailable right now. Please try again in a moment.' : (err?.message || 'Failed to submit request. Try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -210,8 +226,9 @@ export default function StoreSearch() {
 
         <div className="mb-4">
           <p className="text-sm text-muted-foreground">
-            {loading ? 'Loading stores...' : filtered.length === 0 ? 'No stores found' : `${filtered.length} store${filtered.length !== 1 ? 's' : ''} available`}
+            {loading ? 'Loading stores...' : loadError ? 'Unable to load stores' : filtered.length === 0 ? 'No stores found' : `${filtered.length} store${filtered.length !== 1 ? 's' : ''} available`}
           </p>
+          {loadError && <p className="mt-1 text-sm text-destructive">{loadError}</p>}
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -270,7 +287,7 @@ export default function StoreSearch() {
           ))}
         </div>
 
-        {!loading && filtered.length === 0 && (
+        {!loading && !loadError && filtered.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 text-muted-foreground">
             <Store className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p className="text-lg font-medium">No stores found</p>

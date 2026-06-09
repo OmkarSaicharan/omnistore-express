@@ -56,7 +56,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const refreshStore = async () => {
     if (!storeId) { setStore(null); return; }
-    const { data } = await supabase.from('stores').select('*').eq('id', storeId).maybeSingle();
+    const { data, error } = await supabase.from('stores').select('*').eq('id', storeId).maybeSingle();
+    if (error) {
+      console.error('Failed to load store:', error);
+      setStore(null);
+      return;
+    }
     if (data) {
       setStore({
         id: data.id,
@@ -73,12 +78,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         admin_user_id: data.admin_user_id,
         secret_key: data.secret_key,
       });
+      return;
     }
+    setStore(null);
   };
 
   const refreshCategories = async () => {
     if (!storeId) { setCategories([]); return; }
-    const { data } = await supabase.from('store_categories').select('*').eq('store_id', storeId).order('sort_order');
+    const { data, error } = await supabase.from('store_categories').select('*').eq('store_id', storeId).order('sort_order');
+    if (error) {
+      console.error('Failed to load store categories:', error);
+      setCategories([]);
+      return;
+    }
     if (data) {
       setCategories(data.map(c => ({
         id: c.id,
@@ -88,7 +100,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         image: c.image || '',
         sort_order: c.sort_order || 0,
       })));
+      return;
     }
+    setCategories([]);
   };
 
   useEffect(() => {
