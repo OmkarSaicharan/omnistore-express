@@ -48,12 +48,24 @@ export default function MasterAdmin() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [loadError, setLoadError] = useState('');
 
   const fetchData = async () => {
+    setLoading(true);
+    setLoadError('');
     const [reqRes, storeRes] = await Promise.all([
       supabase.from('store_requests').select('*').order('created_at', { ascending: false }),
       supabase.from('stores').select('*').order('created_at', { ascending: false }),
     ]);
+    if (reqRes.error || storeRes.error) {
+      console.error('Failed to load master admin data:', { requestError: reqRes.error, storeError: storeRes.error });
+      setRequests([]);
+      setStores([]);
+      setAdmins({});
+      setLoadError(reqRes.error?.message || storeRes.error?.message || 'Failed to load admin data');
+      setLoading(false);
+      return;
+    }
     if (reqRes.data) setRequests(reqRes.data as any);
     const storeList = (storeRes.data || []) as StoreItem[];
     setStores(storeList);
@@ -158,6 +170,7 @@ export default function MasterAdmin() {
 
           <TabsContent value="requests">
             <h2 className="mb-4 text-xl font-bold">Pending Store Requests</h2>
+            {loadError && <p className="mb-4 text-sm text-destructive">{loadError}</p>}
             {loading ? (
               <p className="text-muted-foreground">Loading...</p>
             ) : pending.length === 0 ? (

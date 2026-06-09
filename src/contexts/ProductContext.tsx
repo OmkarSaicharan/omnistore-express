@@ -20,7 +20,12 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!storeId) { setProducts([]); return; }
     const fetchProducts = async () => {
-      const { data } = await supabase.from('products').select('*').eq('store_id', storeId);
+      const { data, error } = await supabase.from('products').select('*').eq('store_id', storeId);
+      if (error) {
+        console.error('Failed to load products:', error);
+        setProducts([]);
+        return;
+      }
       if (data) {
         setProducts(data.map(p => ({
           id: p.id,
@@ -32,7 +37,9 @@ export function ProductProvider({ children }: { children: ReactNode }) {
           stock: p.stock,
           maxStock: p.max_stock,
         })));
+        return;
       }
+      setProducts([]);
     };
     fetchProducts();
   }, [storeId]);
