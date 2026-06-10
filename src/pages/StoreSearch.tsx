@@ -36,19 +36,29 @@ export default function StoreSearch() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Secret key dialog
+  // Master Admin login dialog
   const [showKeyDialog, setShowKeyDialog] = useState(false);
+  const [masterEmail, setMasterEmail] = useState('');
+  const [masterPassword, setMasterPassword] = useState('');
   const [secretInput, setSecretInput] = useState('');
   const [keyError, setKeyError] = useState('');
+  const [masterLoading, setMasterLoading] = useState(false);
 
-  const fetchStores = async () => {
-    setLoading(true);
+  const fetchStores = async (attempt = 0): Promise<void> => {
+    if (attempt === 0) setLoading(true);
     setLoadError('');
     const { data, error } = await supabase.from('stores').select('*');
     if (error) {
-      console.error('Failed to load stores:', error);
+      console.error('Failed to load stores (attempt ' + attempt + '):', error);
+      const isNetwork = error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError');
+      if (isNetwork && attempt < 5) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+        setLoadError(`Backend is waking up... retrying in ${Math.round(delay / 1000)}s`);
+        setTimeout(() => fetchStores(attempt + 1), delay);
+        return;
+      }
       setStores([]);
-      setLoadError(error.message.includes('Failed to fetch') ? 'Backend is unavailable right now. Please try again in a moment.' : error.message);
+      setLoadError(isNetwork ? 'Backend is unavailable. Please resume the backend and try again.' : error.message);
       setLoading(false);
       return;
     }
@@ -68,7 +78,13 @@ export default function StoreSearch() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchStores(); }, []);
+  useEffect(() => {
+    fetchStores();
+    // Auto-refresh when window regains focus (e.g. after resuming backend)
+    const onFocus = () => fetchStores();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   const filtered = stores.filter(
     s =>
@@ -117,14 +133,35 @@ export default function StoreSearch() {
     }
   };
 
-  const handleKeySubmit = () => {
-    if (secretInput === 'omkar@2004') {
+  const handleKeySubmit = async () => {
+    setKeyError('');
+    if (!masterEmail || !masterPassword || !secretInput) {
+      setKeyError('Email, password and secret key are required');
+      return;
+    }
+    setMasterLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('claim-master-admin', {
+        body: { email: masterEmail, password: masterPassword, secretKey: secretInput },
+      });
+      if (error) throw new Error(error.message || 'Failed to verify master admin');
+      if (data?.error) throw new Error(data.error);
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: masterEmail,
+        password: masterPassword,
+      });
+      if (signInError) throw new Error(signInError.message);
+
       setShowKeyDialog(false);
       setSecretInput('');
-      setKeyError('');
+      setMasterEmail('');
+      setMasterPassword('');
       navigate('/master-admin');
-    } else {
-      setKeyError('Invalid Admin Key');
+    } catch (err: any) {
+      setKeyError(err?.message || 'Unable to access Master Admin');
+    } finally {
+      setMasterLoading(false);
     }
   };
 
