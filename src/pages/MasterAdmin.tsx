@@ -49,20 +49,55 @@ export default function MasterAdmin() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [loadError, setLoadError] = useState('');
+  const [authChecked, setAuthChecked] = useState(false);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const verifyAccess = async (): Promise<boolean> => {
+    const { data: sess } = await supabase.auth.getSession();
+    if (!sess.session?.user) {
+      toast({ title: 'Sign in required', description: 'Please sign in as Master Admin.', variant: 'destructive' });
+      navigate('/');
+      return false;
+    }
+    const { data: roleRow, error: roleErr } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', sess.session.user.id)
+      .eq('role', 'master_admin')
+      .maybeSingle();
+    if (roleErr) {
+      console.error('Role check failed:', roleErr);
+      setLoadError(roleErr.message);
+      return false;
+    }
+    if (!roleRow) {
+      toast({ title: 'Access denied', description: 'You are not a Master Admin.', variant: 'destructive' });
+      navigate('/');
+      return false;
+    }
+    return true;
+  };
+
+  const fetchData = async (attempt = 0): Promise<void> => {
+    if (attempt === 0) setLoading(true);
     setLoadError('');
     const [reqRes, storeRes] = await Promise.all([
       supabase.from('store_requests').select('*').order('created_at', { ascending: false }),
       supabase.from('stores').select('*').order('created_at', { ascending: false }),
     ]);
     if (reqRes.error || storeRes.error) {
+      const err = reqRes.error || storeRes.error!;
       console.error('Failed to load master admin data:', { requestError: reqRes.error, storeError: storeRes.error });
+      const isNetwork = err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError');
+      if (isNetwork && attempt < 5) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+        setLoadError(`Backend is waking up... retrying in ${Math.round(delay / 1000)}s`);
+        setTimeout(() => fetchData(attempt + 1), delay);
+        return;
+      }
       setRequests([]);
       setStores([]);
       setAdmins({});
-      setLoadError(reqRes.error?.message || storeRes.error?.message || 'Failed to load admin data');
+      setLoadError(isNetwork ? 'Backend is unavailable. Please resume and try again.' : err.message);
       setLoading(false);
       return;
     }
@@ -87,7 +122,15 @@ export default function MasterAdmin() {
   };
 
   useEffect(() => {
-    fetchData();
+    (async () => {
+      const ok = await verifyAccess();
+      setAuthChecked(true);
+      if (!ok) return;
+      fetchData();
+    })();
+
+    const onFocus = () => fetchData();
+    window.addEventListener('focus', onFocus);
 
     // Realtime: refresh when stores or store_requests change
     const channel = supabase
@@ -95,7 +138,10 @@ export default function MasterAdmin() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'stores' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'store_requests' }, () => fetchData())
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', onFocus);
+    };
   }, []);
 
   const handleApprove = async (req: StoreRequest) => {
