@@ -2,3 +2,6 @@ project_id = "yjxniqcctylkyvuyzzcq"
 
 [functions.firebase-sync]
 verify_jwt = false
+
+[functions.claim-master-admin]
+verify_jwt = false
