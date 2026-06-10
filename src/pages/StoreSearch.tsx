@@ -359,23 +359,39 @@ export default function StoreSearch() {
         </DialogContent>
       </Dialog>
 
-      {/* Secret Key Dialog */}
-      <Dialog open={showKeyDialog} onOpenChange={v => { setShowKeyDialog(v); setKeyError(''); setSecretInput(''); }}>
+      {/* Master Admin Login Dialog */}
+      <Dialog open={showKeyDialog} onOpenChange={v => { setShowKeyDialog(v); setKeyError(''); if (!v) { setSecretInput(''); setMasterEmail(''); setMasterPassword(''); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Master Admin Access</DialogTitle>
-            <DialogDescription>Enter the secret admin key to continue.</DialogDescription>
+            <DialogDescription>Sign in with your master admin account and secret key.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <Input
-              placeholder="Enter Secret Key"
+              placeholder="Email"
+              type="email"
+              value={masterEmail}
+              onChange={e => { setMasterEmail(e.target.value); setKeyError(''); }}
+              autoComplete="email"
+            />
+            <Input
+              placeholder="Password"
+              type="password"
+              value={masterPassword}
+              onChange={e => { setMasterPassword(e.target.value); setKeyError(''); }}
+              autoComplete="current-password"
+            />
+            <Input
+              placeholder="Master Secret Key"
               type="password"
               value={secretInput}
               onChange={e => { setSecretInput(e.target.value); setKeyError(''); }}
-              onKeyDown={e => e.key === 'Enter' && handleKeySubmit()}
+              onKeyDown={e => e.key === 'Enter' && !masterLoading && handleKeySubmit()}
             />
             {keyError && <p className="text-sm text-destructive">{keyError}</p>}
-            <Button className="w-full" onClick={handleKeySubmit}>Submit</Button>
+            <Button className="w-full" onClick={handleKeySubmit} disabled={masterLoading}>
+              {masterLoading ? 'Verifying...' : 'Sign In'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
