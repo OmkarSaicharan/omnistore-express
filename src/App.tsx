@@ -23,6 +23,7 @@ import NotFound from './pages/NotFound';
 import MasterAdmin from './pages/MasterAdmin';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import OAuthConsent from './pages/OAuthConsent';
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => {
                       <Route path="/master-admin" element={<MasterAdmin />} />
                       <Route path="/forgot-password" element={<ForgotPassword />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                       <Route path="/store/:storeId" element={<StoreLayout />}>
                         <Route path="home" element={<Index />} />
                         <Route path="shop" element={<Shop />} />
