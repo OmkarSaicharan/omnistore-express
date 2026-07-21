@@ -57,10 +57,15 @@ export default function Register() {
       return;
     }
 
-    if (adminSecretKey !== store.secret_key) {
+    const { data: valid, error: verifyErr } = await supabase.rpc('verify_store_secret_key', {
+      _store_id: storeId as string,
+      _key: adminSecretKey,
+    });
+    if (verifyErr || !valid) {
       setAdminError('Invalid admin secret key. Please contact the store owner.');
       return;
     }
+
 
     try {
       const success = await register(adminName, adminEmail, adminPassword, 'admin', storeId);

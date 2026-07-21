@@ -326,6 +326,7 @@ export type Database = {
     }
     Functions: {
       current_user_store_id: { Args: never; Returns: string }
+      get_store_secret_key: { Args: { _store_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -348,6 +349,10 @@ export type Database = {
           _user_id: string
         }
         Returns: Json
+      }
+      verify_store_secret_key: {
+        Args: { _key: string; _store_id: string }
+        Returns: boolean
       }
     }
     Enums: {
