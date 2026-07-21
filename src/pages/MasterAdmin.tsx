@@ -82,7 +82,10 @@ export default function MasterAdmin() {
     setLoadError('');
     const [reqRes, storeRes] = await Promise.all([
       supabase.from('store_requests').select('*').order('created_at', { ascending: false }),
-      supabase.from('stores').select('*').order('created_at', { ascending: false }),
+      supabase
+        .from('stores')
+        .select('id,name,tagline,category,location,state,created_at,admin_user_id')
+        .order('created_at', { ascending: false }),
     ]);
     if (reqRes.error || storeRes.error) {
       const err = reqRes.error || storeRes.error!;
@@ -102,7 +105,14 @@ export default function MasterAdmin() {
       return;
     }
     if (reqRes.data) setRequests(reqRes.data as any);
-    const storeList = (storeRes.data || []) as StoreItem[];
+    const baseStores = (storeRes.data || []) as Omit<StoreItem, 'secret_key'>[];
+    // Fetch each store's secret_key via secure RPC (master_admin passes the has_role check)
+    const storeList: StoreItem[] = await Promise.all(
+      baseStores.map(async (s) => {
+        const { data: sk } = await supabase.rpc('get_store_secret_key', { _store_id: s.id });
+        return { ...s, secret_key: (sk as string) || '' };
+      })
+    );
     setStores(storeList);
 
     // Fetch admin profiles for all stores
@@ -120,6 +130,7 @@ export default function MasterAdmin() {
     }
     setLoading(false);
   };
+
 
   useEffect(() => {
     (async () => {
@@ -149,8 +160,10 @@ export default function MasterAdmin() {
     try {
       const { data, error } = await supabase.functions.invoke('approve-store-request', { body: { requestId: req.id } });
       if (error) throw error;
-      toast({ title: 'Store Approved', description: `${req.store_name} created. Secret Key: ${data.secretKey}` });
+      const inviteNote = data?.inviteSent ? ' Invite email sent to admin — they will set their password from the link.' : '';
+      toast({ title: 'Store Approved', description: `${req.store_name} created. Secret Key: ${data.secretKey}.${inviteNote}` });
       fetchData();
+
     } catch {
       toast({ title: 'Error', description: 'Failed to approve store', variant: 'destructive' });
     } finally {

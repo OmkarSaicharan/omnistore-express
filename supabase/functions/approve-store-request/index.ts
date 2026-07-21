@@ -14,9 +14,9 @@ interface StoreRequestRow {
   state: string | null;
   admin_name: string;
   admin_email: string;
-  admin_password: string;
   status: string;
 }
+
 
 function slugify(value: string) {
   return value
@@ -82,19 +82,21 @@ Deno.serve(async (req) => {
 
     const secretKey = generateSecretKey();
 
-    const { data: authUserData, error: authError } = await admin.auth.admin.createUser({
-      email: storeRequest.admin_email,
-      password: storeRequest.admin_password,
-      email_confirm: true,
-      user_metadata: {
-        name: storeRequest.admin_name,
-        role: 'admin',
-        store_id: storeId,
+    // Invite the admin by email — they set their own password from the link.
+    // The stored admin_password is a bcrypt hash and cannot be used to sign in.
+    const { data: authUserData, error: authError } = await admin.auth.admin.inviteUserByEmail(
+      storeRequest.admin_email,
+      {
+        data: {
+          name: storeRequest.admin_name,
+          role: 'admin',
+          store_id: storeId,
+        },
       },
-    });
+    );
 
     if (authError || !authUserData.user) {
-      return new Response(JSON.stringify({ error: authError?.message || 'Failed to create admin account' }), {
+      return new Response(JSON.stringify({ error: authError?.message || 'Failed to invite admin' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -151,10 +153,11 @@ Deno.serve(async (req) => {
       admin_password: '',
     }).eq('id', requestId);
 
-    return new Response(JSON.stringify({ success: true, storeId, secretKey }), {
+    return new Response(JSON.stringify({ success: true, storeId, secretKey, inviteSent: true }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     return new Response(JSON.stringify({ error: message }), {

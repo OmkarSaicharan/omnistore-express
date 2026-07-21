@@ -56,13 +56,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const refreshStore = async () => {
     if (!storeId) { setStore(null); return; }
-    const { data, error } = await supabase.from('stores').select('*').eq('id', storeId).maybeSingle();
+    const { data, error } = await supabase
+      .from('stores')
+      .select('id,name,tagline,category,location,address,state,hero_image,icon,badge,color,admin_user_id')
+      .eq('id', storeId)
+      .maybeSingle();
     if (error) {
       console.error('Failed to load store:', error);
       setStore(null);
       return;
     }
     if (data) {
+      // Fetch secret_key via secure RPC (returns null unless caller is master/store admin)
+      const { data: sk } = await supabase.rpc('get_store_secret_key', { _store_id: storeId });
       setStore({
         id: data.id,
         name: data.name,
@@ -76,12 +82,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         badge: data.badge || '',
         color: data.color || '',
         admin_user_id: data.admin_user_id,
-        secret_key: data.secret_key,
+        secret_key: (sk as string) || '',
       });
       return;
     }
     setStore(null);
   };
+
 
   const refreshCategories = async () => {
     if (!storeId) { setCategories([]); return; }
